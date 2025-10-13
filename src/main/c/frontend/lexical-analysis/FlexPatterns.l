@@ -25,6 +25,7 @@ extern CompilationStatus LeaveMultilineCommentLexemeAction();
 extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
 extern CompilationStatus SubexpressionLexemeAction();
 extern CompilationStatus UnknownLexemeAction();
+extern CompilationStatus TokenLexemeAction(TokenLabel label);
 
 %}
 
@@ -63,6 +64,24 @@ whitespace			[[:space:]]+
 <MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
 <MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
 <MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
+
+"key"                               { return TokenLexemeAction(KEY); }
+"tempo"                             { return TokenLexemeAction(TEMPO); }
+"time"                              { return TokenLexemeAction(TIME); }
+"major"                             { return TokenLexemeAction(MAJOR); }
+"minor"                             { return TokenLexemeAction(MINOR); }
+
+"do"                                { return TokenLexemeAction(DO); }
+"re"                                { return TokenLexemeAction(RE); }
+"mi"                                { return TokenLexemeAction(MI); }
+"fa"                                { return TokenLexemeAction(FA); }
+"sol"                               { return TokenLexemeAction(SOL); }
+"la"                                { return TokenLexemeAction(LA); }
+"si"                                { return TokenLexemeAction(SI); }
+
+";"                                 { return TokenLexemeAction(SEMICOLON); }
+"."                                 { return TokenLexemeAction(DOT); }
+"|"                                 { return TokenLexemeAction(PIPE); }
 
 "-"									{ return ArithmeticOperatorLexemeAction(SUB); }
 "*"									{ return ArithmeticOperatorLexemeAction(MUL); }
