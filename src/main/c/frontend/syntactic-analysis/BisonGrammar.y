@@ -1,35 +1,22 @@
 %{
-
 #include "../../support/type/TokenLabel.h"
 #include "AbstractSyntaxTree.h"
 #include "BisonActions.h"
 
-/**
- * The error reporting function for Bison parser.
- *
- * @todo Add location to the grammar and "pushToken" API function.
- *
- * @see https://www.gnu.org/software/bison/manual/html_node/Error-Reporting-Function.html
- * @see https://www.gnu.org/software/bison/manual/html_node/Tracking-Locations.html
- */
 void yyerror(const YYLTYPE * location, const char * message) {}
-
 %}
 
-// You touch this, and you die.
+/* --- Configuración Bison --- */
 %define api.pure full
 %define api.push-pull push
 %define api.value.union.name SemanticValue
 %define parse.error detailed
 %locations
 
+/* --- Valores semánticos --- */
 %union {
-	/** Terminals. */
-
 	signed int integer;
 	TokenLabel token;
-
-	/** Non-terminals. */
 
 	Constant * constant;
 	Expression * expression;
@@ -37,68 +24,91 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 	Program * program;
 }
 
-/**
- * Destructors. This functions are executed after the parsing ends, so if the
- * AST must be used in the following phases of the compiler you shouldn't used
- * this approach for the AST root node ("program" non-terminal, in this
- * grammar), or it will drop the entire tree even if the parsing succeeds.
- *
- * @see https://www.gnu.org/software/bison/manual/html_node/Destructor-Decl.html
- */
+/* --- Destructores --- */
 %destructor { destroyConstant($$); } <constant>
 %destructor { destroyExpression($$); } <expression>
 %destructor { destroyFactor($$); } <factor>
 
-/** Terminals. */
+/* --- Tokens del lenguaje --- */
 %token <integer> INTEGER
-%token <token> ADD
-%token <token> CLOSE_BRACE
-%token <token> CLOSE_COMMENT
-%token <token> CLOSE_PARENTHESIS
-%token <token> DIV
-%token <token> MUL
-%token <token> OPEN_BRACE
-%token <token> OPEN_COMMENT
-%token <token> OPEN_PARENTHESIS
-%token <token> SUB
+%token <token> ID
+%token <token> KEY TIME TEMPO CLEF NOTES REST CHORD SECTION REPEAT DYNAMIC
+%token <token> DURATION
+%token <token> OPEN_BRACE CLOSE_BRACE COMMA SEMICOLON COLON SLASH
+%token <token> IGNORED UNKNOWN
 
-%token <token> IGNORED
-%token <token> UNKNOWN
-
-/** Non-terminals. */
-%type <constant> constant
-%type <expression> expression
-%type <factor> factor
+/* --- No-terminales --- */
 %type <program> program
-
-/**
- * Precedence and associativity.
- *
- * @see https://en.cppreference.com/w/cpp/language/operator_precedence.html
- * @see https://www.gnu.org/software/bison/manual/html_node/Precedence.html
- */
-%left ADD SUB
-%left MUL DIV
+%type <expression> header sections section body notes_block note_list note
 
 %%
 
-// IMPORTANT: To use λ in the following grammar, use the %empty symbol.
+/* === GRAMÁTICA DE PARTITEXT === */
 
-program: expression											{ $$ = ExpressionProgramSemanticAction($1); }
+program:
+	header sections { $$ = ExpressionProgramSemanticAction(NULL); }
 	;
 
-expression: expression[left] ADD expression[right]			{ $$ = ArithmeticExpressionSemanticAction($left, $right, ADDITION); }
-	| expression[left] DIV expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, DIVISION); }
-	| expression[left] MUL expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, MULTIPLICATION); }
-	| expression[left] SUB expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, SUBTRACTION); }
-	| factor												{ $$ = FactorExpressionSemanticAction($1); }
+header:
+	key_decl time_decl tempo_decl opt_clef
 	;
 
-factor: OPEN_PARENTHESIS expression CLOSE_PARENTHESIS		{ $$ = ExpressionFactorSemanticAction($2); }
-	| constant												{ $$ = ConstantFactorSemanticAction($1); }
+key_decl:
+	KEY ID ID SEMICOLON
 	;
 
-constant: INTEGER											{ $$ = IntegerConstantSemanticAction($1); }
+time_decl:
+	TIME INTEGER SLASH INTEGER SEMICOLON
+	;
+
+tempo_decl:
+	TEMPO ID SEMICOLON
+	;
+
+opt_clef:
+	| CLEF ID SEMICOLON
+	;
+
+sections:
+	sections section
+	| section
+	;
+
+section:
+	SECTION ID OPEN_BRACE body CLOSE_BRACE
+	;
+
+body:
+	notes_block
+	| chord_block
+	| rest_block
+	| repeat_block
+	;
+
+notes_block:
+	NOTES COLON note_list SEMICOLON
+	;
+
+note_list:
+	note
+	| note_list COMMA note
+	;
+
+note:
+	ID INTEGER DURATION
+	;
+
+chord_block:
+	CHORD OPEN_BRACE note_list CLOSE_BRACE DURATION SEMICOLON
+	;
+
+rest_block:
+	REST DURATION SEMICOLON
+	;
+
+repeat_block:
+	REPEAT INTEGER OPEN_BRACE body CLOSE_BRACE
 	;
 
 %%
+

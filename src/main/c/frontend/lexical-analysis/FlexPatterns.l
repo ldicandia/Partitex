@@ -1,89 +1,84 @@
 %top{
-
 #include "../../support/type/CompilationStatus.h"
 #include "../../support/type/FlexContext.h"
 #include "../../support/type/TokenLabel.h"
 #include "../syntactic-analysis/AbstractSyntaxTree.h"
 #include "../syntactic-analysis/BisonParser.h"
-
 }
 
 %{
-
-/**
- * @see https://westes.github.io/flex/manual/Definitions-Section.html#Definitions-Section
- */
-
-extern CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label);
-extern CompilationStatus EnterImportExpressionLexemeAction(FlexContext context);
-extern CompilationStatus EnterMultilineCommentLexemeAction(FlexContext context);
 extern CompilationStatus EOFLexemeAction();
 extern CompilationStatus IgnoredLexemeAction();
-extern CompilationStatus IntegerLexemeAction();
-extern CompilationStatus LeaveImportExpressionLexemeAction();
-extern CompilationStatus LeaveMultilineCommentLexemeAction();
-extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
-extern CompilationStatus SubexpressionLexemeAction();
 extern CompilationStatus UnknownLexemeAction();
+extern CompilationStatus IntegerLexemeAction();
+extern CompilationStatus ParenthesisLexemeAction(TokenLabel label);
 
+/* Nuevas acciones para Partitext */
+CompilationStatus KeywordLexemeAction(TokenLabel label);
+CompilationStatus IdentifierLexemeAction();
 %}
 
-/**
- * Flex contexts (a.k.a. start conditions).
- *
- * @see https://westes.github.io/flex/manual/Start-Conditions.html
- */
-%x IMPORT_EXPRESSION
 %x MULTILINE_COMMENT
 
-/**
- * Reusable patterns.
- *
- * @see https://westes.github.io/flex/manual/Matching.html
- * @see https://westes.github.io/flex/manual/Patterns.html
- */
-whitespace			[[:space:]]+
+/* === Reusable patterns === */
+whitespace      [[:space:]]+
+digit           [[:digit:]]+
+id              [[:alpha:]_][[:alnum:]_]*
+note            (do|re|mi|fa|sol|la|si|[A-Ga-g])
+duration        (whole|half|quarter|eighth|sixteenth)
+key_kw          "key"
+time_kw         "time"
+tempo_kw        "tempo"
+clef_kw         "clef"
+notes_kw        "notes"
+rest_kw         "rest"
+chord_kw        "chord"
+section_kw      "section"
+repeat_kw       "repeat"
+dynamic_kw      "dynamic"
 
 %%
 
-%{
+"/*"                             { return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
+<MULTILINE_COMMENT>"*/"          { return LeaveMultilineCommentLexemeAction(); }
+<MULTILINE_COMMENT>.             { return IgnoredLexemeAction(); }
 
-/**
- * @see https://westes.github.io/flex/manual/Rules-Section.html#Rules-Section
- */
+/* Palabras clave */
+{key_kw}                         { return KeywordLexemeAction(KEY); }
+{time_kw}                        { return KeywordLexemeAction(TIME); }
+{tempo_kw}                       { return KeywordLexemeAction(TEMPO); }
+{clef_kw}                        { return KeywordLexemeAction(CLEF); }
+{notes_kw}                       { return KeywordLexemeAction(NOTES); }
+{rest_kw}                        { return KeywordLexemeAction(REST); }
+{chord_kw}                       { return KeywordLexemeAction(CHORD); }
+{section_kw}                     { return KeywordLexemeAction(SECTION); }
+{repeat_kw}                      { return KeywordLexemeAction(REPEAT); }
+{dynamic_kw}                     { return KeywordLexemeAction(DYNAMIC); }
 
-%}
+/* Puntuación y símbolos */
+":"                              { return ParenthesisLexemeAction(COLON); }
+";"                              { return ParenthesisLexemeAction(SEMICOLON); }
+","                              { return ParenthesisLexemeAction(COMMA); }
+"{"                              { return ParenthesisLexemeAction(OPEN_BRACE); }
+"}"                              { return ParenthesisLexemeAction(CLOSE_BRACE); }
+"/"                              { return ParenthesisLexemeAction(SLASH); }
 
-"{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
-<IMPORT_EXPRESSION>[^{}]+			{ return SubexpressionLexemeAction(); }
-<IMPORT_EXPRESSION>"}"				{ return LeaveImportExpressionLexemeAction(); }
-<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); }
+/* Notas y duraciones */
+{note}                           { return IdentifierLexemeAction(); }
+{duration}                       { return KeywordLexemeAction(DURATION); }
 
-"/*"								{ return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
-<MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
-<MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
-<MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
+/* Números */
+{digit}+                         { return IntegerLexemeAction(); }
 
-"-"									{ return ArithmeticOperatorLexemeAction(SUB); }
-"*"									{ return ArithmeticOperatorLexemeAction(MUL); }
-"/"									{ return ArithmeticOperatorLexemeAction(DIV); }
-"+"									{ return ArithmeticOperatorLexemeAction(ADD); }
+/* Espacios en blanco */
+{whitespace}                     { return IgnoredLexemeAction(); }
 
-"("									{ return ParenthesisLexemeAction(OPEN_PARENTHESIS); }
-")"									{ return ParenthesisLexemeAction(CLOSE_PARENTHESIS); }
+/* Error léxico */
+.                                 { return UnknownLexemeAction(); }
 
-[[:digit:]]+						{ return IntegerLexemeAction(); }
-
-{whitespace}						{ return IgnoredLexemeAction(); }
-.									{ return UnknownLexemeAction(); }
-
-<<EOF>>								{ return EOFLexemeAction(); }
+/* Fin de archivo */
+<<EOF>>                           { return EOFLexemeAction(); }
 
 %%
-
-/**
- * @see https://westes.github.io/flex/manual/User-Code-Section.html#User-Code-Section
- */
-
 #include "FlexActions.h"
 #include "FlexExport.h"
