@@ -97,6 +97,14 @@ Expression *NoteOctaveSemanticAction(NoteType noteType, const int octave) {
   return expression;
 }
 
+Expression *NoteFromTokenSemanticAction(Note *note) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Expression *expression = calloc(1, sizeof(Expression));
+  expression->type = NOTE;
+  expression->note = note;
+  return expression;
+}
+
 Program *KeyDefinitionSemanticAction(Expression *note, TokenLabel scaleType) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
   Program *program = calloc(1, sizeof(Program));
@@ -113,12 +121,10 @@ Program *KeyDefinitionProgramSemanticAction(Program *keyDefinition) {
   return keyDefinition;
 }
 
-// New semantic actions for extended grammar
-
 Program *StatementListProgramSemanticAction(Statement **statements) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
   Program *program = calloc(1, sizeof(Program));
-  program->type = KEY_DEFINITION; // We'll use this as a generic program type
+  program->type = KEY_DEFINITION;
   program->statements = statements;
   _compilerState->abstractSyntaxtTree = program;
   return program;
@@ -128,25 +134,31 @@ Statement **SingleStatementListSemanticAction(Statement *statement) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
   Statement **statements = calloc(2, sizeof(Statement *));
   statements[0] = statement;
-  statements[1] = NULL; // NULL terminator
+  statements[1] = NULL;
   return statements;
 }
 
 Statement **MultipleStatementListSemanticAction(Statement **statements,
                                                 Statement *statement) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
-  // Count existing statements
   int count = 0;
   while (statements[count] != NULL) {
     count++;
   }
 
-  // Reallocate with space for one more statement
   Statement **newStatements =
       realloc(statements, (count + 2) * sizeof(Statement *));
-  newStatements[count] = statement;
-  newStatements[count + 1] = NULL; // NULL terminator
-  return newStatements;
+  if (newStatements == NULL) {
+    if (statement != NULL) {
+      destroyStatement(statement);
+    }
+    return statements;
+  }
+
+  statements = newStatements;
+  statements[count] = statement;
+  statements[count + 1] = NULL;
+  return statements;
 }
 
 Statement *KeyDefinitionStatementSemanticAction(Program *keyDefinition) {
@@ -154,7 +166,6 @@ Statement *KeyDefinitionStatementSemanticAction(Program *keyDefinition) {
   Statement *statement = calloc(1, sizeof(Statement));
   statement->type = KEY_STATEMENT;
   statement->keyDefinition = keyDefinition->key;
-  // Free the program wrapper since we're extracting the key definition
   free(keyDefinition);
   return statement;
 }
@@ -195,7 +206,6 @@ TempoDeclaration *TempoDeclarationSemanticAction(TokenLabel tempoName) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
   TempoDeclaration *tempoDeclaration = calloc(1, sizeof(TempoDeclaration));
 
-  // Convert token label to string
   const char *tempoNameStr;
   switch (tempoName) {
   case 274:
@@ -225,7 +235,7 @@ NoteSequence *SingleNoteSequenceSemanticAction(Note *note) {
   NoteSequence *noteSequence = calloc(1, sizeof(NoteSequence));
   noteSequence->notes = calloc(2, sizeof(Note *));
   noteSequence->notes[0] = note;
-  noteSequence->notes[1] = NULL; // NULL terminator
+  noteSequence->notes[1] = NULL;
   noteSequence->count = 1;
   return noteSequence;
 }
@@ -233,11 +243,18 @@ NoteSequence *SingleNoteSequenceSemanticAction(Note *note) {
 NoteSequence *MultipleNoteSequenceSemanticAction(NoteSequence *noteSequence,
                                                  Note *note) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
-  // Reallocate with space for one more note
-  noteSequence->notes =
+  Note **newNotes =
       realloc(noteSequence->notes, (noteSequence->count + 2) * sizeof(Note *));
+  if (newNotes == NULL) {
+    if (note != NULL) {
+      destroyNote(note);
+    }
+    return noteSequence;
+  }
+
+  noteSequence->notes = newNotes;
   noteSequence->notes[noteSequence->count] = note;
-  noteSequence->notes[noteSequence->count + 1] = NULL; // NULL terminator
+  noteSequence->notes[noteSequence->count + 1] = NULL;
   noteSequence->count++;
   return noteSequence;
 }
@@ -248,11 +265,150 @@ Note *NoteWithDurationSemanticAction(Expression *note, NoteDuration duration) {
   noteWithDuration->type = note->note->type;
   noteWithDuration->octave = note->note->octave;
   noteWithDuration->duration = duration;
-  
-  // Free the original note inside the expression
+
   free(note->note);
-  // Free the expression wrapper
   free(note);
-  
+
   return noteWithDuration;
+}
+
+Statement *PatternStatementSemanticAction(char *name,
+                                          NoteSequence *noteSequence) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Statement *statement = calloc(1, sizeof(Statement));
+  statement->type = PATTERN_STATEMENT;
+  statement->pattern = calloc(1, sizeof(Pattern));
+  statement->pattern->name = malloc(strlen(name) + 1);
+  strcpy(statement->pattern->name, name);
+  statement->pattern->noteSequence = noteSequence;
+  statement->pattern->dataType = PATTERN_TYPE;
+  free(name);
+  return statement;
+}
+
+Statement *MelodyStatementSemanticAction(char *name, NoteSequence *noteSequence,
+                                         TimeValue *duration) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Statement *statement = calloc(1, sizeof(Statement));
+  statement->type = MELODY_STATEMENT;
+  statement->melody = calloc(1, sizeof(Melody));
+  statement->melody->name = malloc(strlen(name) + 1);
+  strcpy(statement->melody->name, name);
+  statement->melody->noteSequence = noteSequence;
+  statement->melody->duration = duration;
+  free(name);
+  return statement;
+}
+
+Statement *RepeatStatementSemanticAction(char *patternName, int repeatCount,
+                                         TimeValue *interval) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Statement *statement = calloc(1, sizeof(Statement));
+  statement->type = REPEAT_STATEMENT;
+  statement->repeatStatement = calloc(1, sizeof(RepeatStatement));
+  statement->repeatStatement->patternName = malloc(strlen(patternName) + 1);
+  strcpy(statement->repeatStatement->patternName, patternName);
+  statement->repeatStatement->repeatCount = repeatCount;
+  statement->repeatStatement->interval = interval;
+  free(patternName);
+  return statement;
+}
+
+Statement *
+SimultaneousStatementSemanticAction(SimultaneousNotes *simultaneousNotes) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Statement *statement = calloc(1, sizeof(Statement));
+  statement->type = NOTES_STATEMENT;
+  statement->simultaneousNotes = simultaneousNotes;
+  return statement;
+}
+
+SimultaneousNotes *
+SingleSimultaneousSemanticAction(char *instrumentName,
+                                 NoteSequence *noteSequence) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  SimultaneousNotes *simultaneous = calloc(1, sizeof(SimultaneousNotes));
+  simultaneous->instrumentCount = 1;
+  simultaneous->noteSequences = calloc(2, sizeof(NoteSequence *));
+  simultaneous->noteSequences[0] = noteSequence;
+  simultaneous->noteSequences[1] = NULL;
+  simultaneous->instrumentNames = calloc(2, sizeof(char *));
+  simultaneous->instrumentNames[0] = malloc(strlen(instrumentName) + 1);
+  strcpy(simultaneous->instrumentNames[0], instrumentName);
+  simultaneous->instrumentNames[1] = NULL;
+  free(instrumentName);
+  return simultaneous;
+}
+
+SimultaneousNotes *
+MultipleSimultaneousSemanticAction(SimultaneousNotes *existing,
+                                   char *instrumentName,
+                                   NoteSequence *noteSequence) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+
+  NoteSequence **newNoteSequences =
+      realloc(existing->noteSequences,
+              (existing->instrumentCount + 2) * sizeof(NoteSequence *));
+  char **newInstrumentNames =
+      realloc(existing->instrumentNames,
+              (existing->instrumentCount + 2) * sizeof(char *));
+
+  if (newNoteSequences == NULL || newInstrumentNames == NULL) {
+    if (newNoteSequences != NULL &&
+        newNoteSequences != existing->noteSequences) {
+      memcpy(newNoteSequences, existing->noteSequences,
+             (existing->instrumentCount + 1) * sizeof(NoteSequence *));
+      free(newNoteSequences);
+    }
+    if (newInstrumentNames != NULL &&
+        newInstrumentNames != existing->instrumentNames) {
+      memcpy(newInstrumentNames, existing->instrumentNames,
+             (existing->instrumentCount + 1) * sizeof(char *));
+      free(newInstrumentNames);
+    }
+
+    if (noteSequence != NULL) {
+      destroyNoteSequence(noteSequence);
+    }
+    if (instrumentName != NULL) {
+      free(instrumentName);
+    }
+    return existing;
+  }
+
+  existing->noteSequences = newNoteSequences;
+  existing->instrumentNames = newInstrumentNames;
+
+  existing->noteSequences[existing->instrumentCount] = noteSequence;
+  existing->noteSequences[existing->instrumentCount + 1] = NULL;
+
+  existing->instrumentNames[existing->instrumentCount] =
+      malloc(strlen(instrumentName) + 1);
+  if (existing->instrumentNames[existing->instrumentCount] == NULL) {
+    if (noteSequence != NULL) {
+      destroyNoteSequence(noteSequence);
+    }
+    free(instrumentName);
+    return existing;
+  }
+
+  strcpy(existing->instrumentNames[existing->instrumentCount], instrumentName);
+  free(instrumentName);
+  existing->instrumentNames[existing->instrumentCount + 1] = NULL;
+
+  existing->instrumentCount++;
+  return existing;
+}
+
+TimeValue *TimeValueSemanticAction(int value, TimeUnit unit) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  TimeValue *timeValue = calloc(1, sizeof(TimeValue));
+  timeValue->value = value;
+  timeValue->unit = unit;
+  return timeValue;
+}
+
+char *IdentifierSemanticAction(TokenLabel token) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  return NULL;
 }

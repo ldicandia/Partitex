@@ -30,13 +30,8 @@ ModuleDestructor initializeFlexActionsModule(LexicalAnalyzer *lexicalAnalyzer) {
   return _shutdownFlexActionsModule;
 }
 
-/* PRIVATE FUNCTIONS */
-
 static void _logTokenAction(const char *actionName, Token *token);
 
-/**
- * Logs a lexical-analyzer action over a token in DEBUGGING level.
- */
 static void _logTokenAction(const char *actionName, Token *token) {
   char *_lexeme = escape(token->lexeme);
   logDebugging(_logger,
@@ -49,8 +44,6 @@ static void _logTokenAction(const char *actionName, Token *token) {
   free(_lexeme);
   _lexeme = NULL;
 }
-
-/* PUBLIC FUNCTIONS */
 
 CompilationStatus ArithmeticOperatorLexemeAction(TokenLabel label) {
   Token *token = createToken(_lexicalAnalyzer, label);
@@ -163,6 +156,32 @@ CompilationStatus UnknownLexemeAction() {
 
 CompilationStatus TokenLexemeAction(TokenLabel label) {
   Token *token = createToken(_lexicalAnalyzer, label);
+  _logTokenAction(__FUNCTION__, token);
+  CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+  destroyToken(token);
+  return status;
+}
+
+CompilationStatus IdentifierLexemeAction() {
+  Token *token = createToken(_lexicalAnalyzer, IDENTIFIER);
+  char *identifierString = malloc(strlen(token->lexeme) + 1);
+  if (identifierString != NULL) {
+    strcpy(identifierString, token->lexeme);
+    token->semanticValue->string = identifierString;
+  } else {
+    token->semanticValue->string = NULL;
+  }
+  _logTokenAction(__FUNCTION__, token);
+  CompilationStatus status = pushToken(_lexicalAnalyzer, token);
+  destroyToken(token);
+  return status;
+}
+
+CompilationStatus NoteWithOctaveLexemeAction(NoteType noteType, int octave) {
+  Token *token = createToken(_lexicalAnalyzer, NOTE_TOKEN);
+  token->semanticValue->note = calloc(1, sizeof(Note));
+  token->semanticValue->note->type = noteType;
+  token->semanticValue->note->octave = octave;
   _logTokenAction(__FUNCTION__, token);
   CompilationStatus status = pushToken(_lexicalAnalyzer, token);
   destroyToken(token);

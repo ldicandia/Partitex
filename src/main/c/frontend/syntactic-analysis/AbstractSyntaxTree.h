@@ -20,6 +20,11 @@ typedef struct KeyDefinition KeyDefinition;
 typedef struct TimeSignature TimeSignature;
 typedef struct TempoDeclaration TempoDeclaration;
 typedef struct NoteSequence NoteSequence;
+typedef struct Pattern Pattern;
+typedef struct Melody Melody;
+typedef struct RepeatStatement RepeatStatement;
+typedef struct SimultaneousNotes SimultaneousNotes;
+typedef struct TimeValue TimeValue;
 typedef struct Statement Statement;
 typedef struct Program Program;
 
@@ -53,7 +58,10 @@ typedef enum {
   KEY_STATEMENT,
   TIME_STATEMENT,
   TEMPO_STATEMENT,
-  NOTES_STATEMENT
+  NOTES_STATEMENT,
+  PATTERN_STATEMENT,
+  REPEAT_STATEMENT,
+  MELODY_STATEMENT
 } StatementType;
 
 typedef enum {
@@ -63,6 +71,10 @@ typedef enum {
   EIGHTH_NOTE,
   SIXTEENTH_NOTE
 } NoteDuration;
+
+typedef enum { SECONDS, MILLISECONDS, MINUTES } TimeUnit;
+
+typedef enum { NOTE_TYPE, MELODY_TYPE, PATTERN_TYPE } MusicalDataType;
 
 /**
  * AST node structures
@@ -116,6 +128,35 @@ struct NoteSequence {
   int count;
 };
 
+struct TimeValue {
+  int value;
+  TimeUnit unit;
+};
+
+struct Pattern {
+  char *name;
+  NoteSequence *noteSequence;
+  MusicalDataType dataType;
+};
+
+struct Melody {
+  char *name;
+  NoteSequence *noteSequence;
+  TimeValue *duration;
+};
+
+struct RepeatStatement {
+  char *patternName;
+  int repeatCount;
+  TimeValue *interval; // Optional interval between repetitions
+};
+
+struct SimultaneousNotes {
+  NoteSequence **noteSequences; // Array of note sequences for different instruments
+  int instrumentCount;
+  char **instrumentNames; // Names of instruments
+};
+
 struct Statement {
   StatementType type;
   union {
@@ -123,6 +164,10 @@ struct Statement {
     TimeSignature *timeSignature;
     TempoDeclaration *tempoDeclaration;
     NoteSequence *noteSequence;
+    Pattern *pattern;
+    RepeatStatement *repeatStatement;
+    Melody *melody;
+    SimultaneousNotes *simultaneousNotes;
   };
 };
 
@@ -148,6 +193,11 @@ void destroyKeyDefinition(KeyDefinition *keyDefinition);
 void destroyTimeSignature(TimeSignature *timeSignature);
 void destroyTempoDeclaration(TempoDeclaration *tempoDeclaration);
 void destroyNoteSequence(NoteSequence *noteSequence);
+void destroyPattern(Pattern *pattern);
+void destroyMelody(Melody *melody);
+void destroyRepeatStatement(RepeatStatement *repeatStatement);
+void destroySimultaneousNotes(SimultaneousNotes *simultaneousNotes);
+void destroyTimeValue(TimeValue *timeValue);
 void destroyStatement(Statement *statement);
 
 #endif

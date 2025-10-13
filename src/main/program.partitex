@@ -1,0 +1,73 @@
+/* ========================================
+   PARTITEX COMPILER - TEST EXAMPLES
+   ======================================== */
+
+key la4 major;
+time 4/4;
+tempo allegro;
+notes: la4 quarter, re4 quarter, mi4 quarter, fa4 half;
+
+key re3 minor;
+time 3/4;
+tempo andante;
+notes: re3 whole, mi3 half, sol3 quarter;
+
+key re5 major;
+time 6/8;
+tempo presto;
+notes: re5 eighth, fa5 eighth, la5 eighth, re6 eighth, fa6 eighth, la6 eighth;
+
+notes: sol4 whole;
+
+key mi4 minor;
+time 2/4;
+tempo largo;
+notes: mi4 half, sol4 half;
+
+key do4 major;
+
+time 4/4;
+
+tempo allegro;
+
+pattern intro: do4 quarter, re4 quarter, mi4 quarter, fa4 quarter;
+
+melody verse: sol4 half,
+               la4 quarter,
+               sol4 quarter,
+               mi4 half,
+               re4 quarter,
+               do4 quarter;
+
+repeat intro 3 2 seconds;
+
+pattern chorus: 
+    do4 eighth, re4 eighth, mi4 quarter, 
+    fa4 eighth, sol4 eighth, la4 quarter,
+    sol4 eighth, fa4 eighth, mi4 quarter,
+    re4 eighth, do4 eighth, do4 quarter;
+
+
+repeat chorus 2;
+
+
+melody outro: do4 whole,
+               re4 whole,
+               mi4 whole,
+               fa4 whole,
+               sol4 whole,
+               la4 whole,
+               si4 whole,
+               do5 whole 1 minutes;
+
+
+/*
+simultaneous:
+    instrument piano: do4 whole, mi4 whole, sol4 whole;;
+    instrument violin: do5 whole, mi5 whole, sol5 whole;;
+    instrument bass: do3 whole, mi3 whole, sol3 whole
+;
+*/
+
+
+

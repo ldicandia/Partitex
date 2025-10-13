@@ -25,10 +25,10 @@ Factor *ConstantFactorSemanticAction(Constant *constant);
 Factor *ExpressionFactorSemanticAction(Expression *expression);
 Program *ExpressionProgramSemanticAction(Expression *expression);
 Expression *NoteOctaveSemanticAction(NoteType noteType, const int octave);
+Expression *NoteFromTokenSemanticAction(Note *note);
 Program *KeyDefinitionSemanticAction(Expression *note, TokenLabel scaleType);
 Program *KeyDefinitionProgramSemanticAction(Program *keyDefinition);
 
-// New semantic actions for extended grammar
 Program *StatementListProgramSemanticAction(Statement **statements);
 Statement **SingleStatementListSemanticAction(Statement *statement);
 Statement **MultipleStatementListSemanticAction(Statement **statements,
@@ -43,4 +43,22 @@ NoteSequence *SingleNoteSequenceSemanticAction(Note *note);
 NoteSequence *MultipleNoteSequenceSemanticAction(NoteSequence *noteSequence,
                                                  Note *note);
 Note *NoteWithDurationSemanticAction(Expression *note, NoteDuration duration);
+
+Statement *PatternStatementSemanticAction(char *name,
+                                          NoteSequence *noteSequence);
+Statement *MelodyStatementSemanticAction(char *name, NoteSequence *noteSequence,
+                                         TimeValue *duration);
+Statement *RepeatStatementSemanticAction(char *patternName, int repeatCount,
+                                         TimeValue *interval);
+Statement *
+SimultaneousStatementSemanticAction(SimultaneousNotes *simultaneousNotes);
+SimultaneousNotes *SingleSimultaneousSemanticAction(char *instrumentName,
+                                                    NoteSequence *noteSequence);
+SimultaneousNotes *
+MultipleSimultaneousSemanticAction(SimultaneousNotes *existing,
+                                   char *instrumentName,
+                                   NoteSequence *noteSequence);
+TimeValue *TimeValueSemanticAction(int value, TimeUnit unit);
+char *IdentifierSemanticAction(TokenLabel token);
+
 #endif

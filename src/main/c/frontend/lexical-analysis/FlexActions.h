@@ -15,4 +15,8 @@
 /** Initialize module's internal state. */
 ModuleDestructor initializeFlexActionsModule();
 
+/** Lexical analyzer action functions. */
+CompilationStatus IdentifierLexemeAction();
+CompilationStatus NoteWithOctaveLexemeAction(NoteType noteType, int octave);
+
 #endif

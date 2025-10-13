@@ -42,6 +42,11 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 	TempoDeclaration * tempoDeclaration;
 	NoteSequence * noteSequence;
 	Note * note;
+	Pattern * pattern;
+	Melody * melody;
+	RepeatStatement * repeatStatement;
+	SimultaneousNotes * simultaneousNotes;
+	TimeValue * timeValue;
 }
 
 /**
@@ -60,6 +65,9 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { destroyTempoDeclaration($$); } <tempoDeclaration>
 %destructor { destroyNoteSequence($$); } <noteSequence>
 %destructor { destroyNote($$); } <note>
+%destructor { destroySimultaneousNotes($$); } <simultaneousNotes>
+%destructor { destroyTimeValue($$); } <timeValue>
+%destructor { free($$); } <string>
 
 /** Terminals. */
 %token <integer> INTEGER
@@ -97,6 +105,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <token> PIPE
 %token <token> COLON
 %token <token> COMMA
+%token <token> SEMICOLON_SEP
 %token <token> SLASH
 
 // Note duration tokens.
@@ -114,6 +123,16 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 
 // Additional music tokens.
 %token <token> NOTES
+%token <token> PATTERN
+%token <token> MELODY
+%token <token> REPEAT
+%token <token> SIMULTANEOUS
+%token <token> INSTRUMENT
+%token <token> TIME_SECONDS
+%token <token> TIME_MILLISECONDS
+%token <token> TIME_MINUTES
+%token <string> IDENTIFIER
+%token <note> NOTE_TOKEN
 
 
 /** Non-terminals. */
@@ -137,6 +156,14 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %type <statement> time_statement
 %type <statement> tempo_statement
 %type <statement> notes_statement
+%type <statement> pattern_statement
+%type <statement> repeat_statement
+%type <statement> melody_statement
+%type <statement> simultaneous_statement
+
+%type <simultaneousNotes> simultaneous_definition
+%type <timeValue> time_value
+%type <token> time_unit
 
 /**
  * Precedence and associativity.
@@ -146,6 +173,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
  */
 %left ADD SUB
 %left MUL DIV
+%left COMMA
 
 %%
 
@@ -163,20 +191,25 @@ statement: key_definition                              { $$ = KeyDefinitionState
          | time_statement                              { $$ = $1; }
          | tempo_statement                             { $$ = $1; }
          | notes_statement                             { $$ = $1; }
+         | pattern_statement                           { $$ = $1; }
+         | repeat_statement                            { $$ = $1; }
+         | melody_statement                            { $$ = $1; }
+         | simultaneous_statement                      { $$ = $1; }
          ;
 
 // Defina la estructura para una key
 key_definition: KEY note scale_type SEMICOLON           { $$ = KeyDefinitionSemanticAction($2, $3); }
               ;
 
-// Defina la estructura de una nota con octava
-note: DO DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(DO_NOTE, $3); }
-    | RE DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(RE_NOTE, $3); }
-    | MI DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(MI_NOTE, $3); }
-    | FA DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(FA_NOTE, $3); }
-    | SOL DOT INTEGER                                   { $$ = NoteOctaveSemanticAction(SOL_NOTE, $3); }
-    | LA DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(LA_NOTE, $3); }
-    | SI DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(SI_NOTE, $3); }
+// Defina la estructura de una nota con octava (sin punto como separador)
+note: NOTE_TOKEN                                       { $$ = NoteFromTokenSemanticAction($1); }
+    | DO INTEGER                                        { $$ = NoteOctaveSemanticAction(DO_NOTE, $2); }
+    | RE INTEGER                                        { $$ = NoteOctaveSemanticAction(RE_NOTE, $2); }
+    | MI INTEGER                                        { $$ = NoteOctaveSemanticAction(MI_NOTE, $2); }
+    | FA INTEGER                                        { $$ = NoteOctaveSemanticAction(FA_NOTE, $2); }
+    | SOL INTEGER                                       { $$ = NoteOctaveSemanticAction(SOL_NOTE, $2); }
+    | LA INTEGER                                        { $$ = NoteOctaveSemanticAction(LA_NOTE, $2); }
+    | SI INTEGER                                        { $$ = NoteOctaveSemanticAction(SI_NOTE, $2); }
     ;
 
 // Defina el tipo de escala
@@ -222,7 +255,39 @@ note_duration: WHOLE                                    { $$ = WHOLE_NOTE; }
              | SIXTEENTH                                { $$ = SIXTEENTH_NOTE; }
              ;
 
-// Acá necesitamos mantener las reglas de expresión para que la gramática esté completa
+// Pattern definition
+pattern_statement: PATTERN IDENTIFIER COLON note_sequence SEMICOLON    { $$ = PatternStatementSemanticAction($2, $4); }
+                ;
+
+// Melody definition with optional duration
+melody_statement: MELODY IDENTIFIER COLON note_sequence SEMICOLON                    { $$ = MelodyStatementSemanticAction($2, $4, NULL); }
+                | MELODY IDENTIFIER COLON note_sequence time_value SEMICOLON         { $$ = MelodyStatementSemanticAction($2, $4, $5); }
+                ;
+
+// Repeat statement
+repeat_statement: REPEAT IDENTIFIER INTEGER SEMICOLON                               { $$ = RepeatStatementSemanticAction($2, $3, NULL); }
+                | REPEAT IDENTIFIER INTEGER time_value SEMICOLON                    { $$ = RepeatStatementSemanticAction($2, $3, $4); }
+                ;
+
+// Simultaneous notes for multiple instruments
+simultaneous_statement: SIMULTANEOUS COLON simultaneous_definition SEMICOLON        { $$ = SimultaneousStatementSemanticAction($3); }
+                      ;
+
+simultaneous_definition: INSTRUMENT IDENTIFIER COLON note_sequence                  { $$ = SingleSimultaneousSemanticAction($2, $4); }
+                       | simultaneous_definition SEMICOLON_SEP INSTRUMENT IDENTIFIER COLON note_sequence  { $$ = MultipleSimultaneousSemanticAction($1, $4, $6); }
+                       ;
+
+// Time value with units
+time_value: INTEGER time_unit                          { $$ = TimeValueSemanticAction($1, $2); }
+          ;
+
+time_unit: TIME_SECONDS                                { $$ = SECONDS; }
+         | TIME_MILLISECONDS                           { $$ = MILLISECONDS; }
+         | TIME_MINUTES                                { $$ = MINUTES; }
+         ;
+
+// Identifier (handled directly by lexer)
+
 expression: expression ADD expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, ADDITION); }
           | expression SUB expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, SUBTRACTION); }
           | expression MUL expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, MULTIPLICATION); }

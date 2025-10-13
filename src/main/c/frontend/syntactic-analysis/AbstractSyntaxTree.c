@@ -4,7 +4,6 @@
 
 static Logger *_logger = NULL;
 
-/** Shutdown module's internal state. */
 void _shutdownAbstractSyntaxTreeModule() {
   if (_logger != NULL) {
     logDebugging(_logger, "Destroying module: AbstractSyntaxTree...");
@@ -17,8 +16,6 @@ ModuleDestructor initializeAbstractSyntaxTreeModule() {
   _logger = createLogger("AbstractSyntaxTree");
   return _shutdownAbstractSyntaxTreeModule;
 }
-
-/* PUBLIC FUNCTIONS */
 
 void destroyConstant(Constant *constant) {
   logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
@@ -111,6 +108,70 @@ void destroyNoteSequence(NoteSequence *noteSequence) {
   }
 }
 
+void destroyPattern(Pattern *pattern) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (pattern != NULL) {
+    if (pattern->name != NULL) {
+      free(pattern->name);
+    }
+    destroyNoteSequence(pattern->noteSequence);
+    free(pattern);
+  }
+}
+
+void destroyMelody(Melody *melody) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (melody != NULL) {
+    if (melody->name != NULL) {
+      free(melody->name);
+    }
+    destroyNoteSequence(melody->noteSequence);
+    if (melody->duration != NULL) {
+      destroyTimeValue(melody->duration);
+    }
+    free(melody);
+  }
+}
+
+void destroyRepeatStatement(RepeatStatement *repeatStatement) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (repeatStatement != NULL) {
+    if (repeatStatement->patternName != NULL) {
+      free(repeatStatement->patternName);
+    }
+    if (repeatStatement->interval != NULL) {
+      destroyTimeValue(repeatStatement->interval);
+    }
+    free(repeatStatement);
+  }
+}
+
+void destroySimultaneousNotes(SimultaneousNotes *simultaneousNotes) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (simultaneousNotes != NULL) {
+    if (simultaneousNotes->noteSequences != NULL) {
+      for (int i = 0; i < simultaneousNotes->instrumentCount; i++) {
+        destroyNoteSequence(simultaneousNotes->noteSequences[i]);
+      }
+      free(simultaneousNotes->noteSequences);
+    }
+    if (simultaneousNotes->instrumentNames != NULL) {
+      for (int i = 0; i < simultaneousNotes->instrumentCount; i++) {
+        free(simultaneousNotes->instrumentNames[i]);
+      }
+      free(simultaneousNotes->instrumentNames);
+    }
+    free(simultaneousNotes);
+  }
+}
+
+void destroyTimeValue(TimeValue *timeValue) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (timeValue != NULL) {
+    free(timeValue);
+  }
+}
+
 void destroyStatement(Statement *statement) {
   logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
   if (statement != NULL) {
@@ -125,7 +186,20 @@ void destroyStatement(Statement *statement) {
       destroyTempoDeclaration(statement->tempoDeclaration);
       break;
     case NOTES_STATEMENT:
-      destroyNoteSequence(statement->noteSequence);
+      if (statement->noteSequence != NULL) {
+        destroyNoteSequence(statement->noteSequence);
+      } else if (statement->simultaneousNotes != NULL) {
+        destroySimultaneousNotes(statement->simultaneousNotes);
+      }
+      break;
+    case PATTERN_STATEMENT:
+      destroyPattern(statement->pattern);
+      break;
+    case MELODY_STATEMENT:
+      destroyMelody(statement->melody);
+      break;
+    case REPEAT_STATEMENT:
+      destroyRepeatStatement(statement->repeatStatement);
       break;
     }
     free(statement);
@@ -146,7 +220,10 @@ void destroyProgram(Program *program) {
     case KEY_DEFINITION:
       printf("DEBUG: destroyProgram - Calling destroyKeyDefinition\n");
       if (program->statements != NULL) {
-        // Handle statement list
+        int statementCount = 0;
+        for (int i = 0; program->statements[i] != NULL; i++) {
+          statementCount++;
+        }
         for (int i = 0; program->statements[i] != NULL; i++) {
           destroyStatement(program->statements[i]);
         }
