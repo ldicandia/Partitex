@@ -26,53 +26,44 @@ typedef struct Program Program;
  * Node types for the Abstract Syntax Tree (AST).
  */
 
-enum ExpressionType {
-	ADDITION,
-	DIVISION,
-	FACTOR,
-	MULTIPLICATION,
-	SUBTRACTION
-};
+enum ExpressionType { ADDITION, DIVISION, FACTOR, MULTIPLICATION, SUBTRACTION };
 
-enum FactorType {
-	CONSTANT,
-	EXPRESSION
-};
+enum FactorType { CONSTANT, EXPRESSION };
 
 struct Constant {
-	int value;
+  int value;
 };
 
 struct Factor {
-	union {
-		Constant * constant;
-		Expression * expression;
-	};
-	FactorType type;
+  union {
+    Constant *constant;
+    Expression *expression;
+  };
+  FactorType type;
 };
 
 struct Expression {
-	union {
-		Factor * factor;
-		struct {
-			Expression * leftExpression;
-			Expression * rightExpression;
-		};
-	};
-	ExpressionType type;
+  union {
+    Factor *factor;
+    struct {
+      Expression *leftExpression;
+      Expression *rightExpression;
+    };
+  };
+  ExpressionType type;
 };
 
 struct Program {
-	Expression * expression;
+  Expression *expression;
 };
 
 /**
  * Node recursive super-duper-trambolik-destructors.
  */
 
-void destroyConstant(Constant * constant);
-void destroyExpression(Expression * expression);
-void destroyFactor(Factor * factor);
-void destroyProgram(Program * program);
+void destroyConstant(Constant *constant);
+void destroyExpression(Expression *expression);
+void destroyFactor(Factor *factor);
+void destroyProgram(Program *program);
 
 #endif

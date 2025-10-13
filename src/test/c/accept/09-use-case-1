@@ -1,0 +1,4 @@
+key C major;
+time 4 / 4;
+tempo allegro;
+notes : do4 quarter, re4 quarter, mi4 quarter, fa4 half;
