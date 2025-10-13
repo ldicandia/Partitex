@@ -65,11 +65,37 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <token> IGNORED
 %token <token> UNKNOWN
 
+// Music-specific tokens.
+%token <token> KEY
+%token <token> NOTE
+%token <token> TEMPO
+%token <token> TIME
+%token <token> MAJOR
+%token <token> MINOR
+%token <token> DO
+%token <token> RE
+%token <token> MI
+%token <token> FA
+%token <token> SOL
+%token <token> LA
+%token <token> SI
+%token <token> 
+
+// Punctuation tokens.
+%token <token> SEMICOLON
+%token <token> DOT
+%token <token> PIPE
+
+
 /** Non-terminals. */
 %type <constant> constant
 %type <expression> expression
 %type <factor> factor
 %type <program> program
+
+%type <program> key_definition
+%type <expression> note
+%type <token> scale_type
 
 /**
  * Precedence and associativity.
@@ -84,21 +110,27 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 
 // IMPORTANT: To use λ in the following grammar, use the %empty symbol.
 
-program: expression											{ $$ = ExpressionProgramSemanticAction($1); }
-	;
+program: expression                                      { $$ = ExpressionProgramSemanticAction($1); }
+       | key_definition                                 { $$ = KeyDefinitionProgramSemanticAction($1); }
+       ;
 
-expression: expression[left] ADD expression[right]			{ $$ = ArithmeticExpressionSemanticAction($left, $right, ADDITION); }
-	| expression[left] DIV expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, DIVISION); }
-	| expression[left] MUL expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, MULTIPLICATION); }
-	| expression[left] SUB expression[right]				{ $$ = ArithmeticExpressionSemanticAction($left, $right, SUBTRACTION); }
-	| factor												{ $$ = FactorExpressionSemanticAction($1); }
-	;
+// Defina la estructura para una key
+key_definition: KEY note scale_type SEMICOLON           { $$ = KeyDefinitionSemanticAction($2, $3); }
+              ;
 
-factor: OPEN_PARENTHESIS expression CLOSE_PARENTHESIS		{ $$ = ExpressionFactorSemanticAction($2); }
-	| constant												{ $$ = ConstantFactorSemanticAction($1); }
-	;
+// Defina la estructura de una nota con octava
+note: DO DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(DO_NOTE, $3); }
+    | RE DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(RE_NOTE, $3); }
+    | MI DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(MI_NOTE, $3); }
+    | FA DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(FA_NOTE, $3); }
+    | SOL DOT INTEGER                                   { $$ = NoteOctaveSemanticAction(SOL_NOTE, $3); }
+    | LA DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(LA_NOTE, $3); }
+    | SI DOT INTEGER                                    { $$ = NoteOctaveSemanticAction(SI_NOTE, $3); }
+    ;
 
-constant: INTEGER											{ $$ = IntegerConstantSemanticAction($1); }
-	;
+// Defina el tipo de escala
+scale_type: MAJOR                                       { $$ = $1; }
+          | MINOR                                       { $$ = $1; }
+          ;
 
 %%
