@@ -27,4 +27,20 @@ Program *ExpressionProgramSemanticAction(Expression *expression);
 Expression *NoteOctaveSemanticAction(NoteType noteType, const int octave);
 Program *KeyDefinitionSemanticAction(Expression *note, TokenLabel scaleType);
 Program *KeyDefinitionProgramSemanticAction(Program *keyDefinition);
+
+// New semantic actions for extended grammar
+Program *StatementListProgramSemanticAction(Statement **statements);
+Statement **SingleStatementListSemanticAction(Statement *statement);
+Statement **MultipleStatementListSemanticAction(Statement **statements,
+                                                Statement *statement);
+Statement *KeyDefinitionStatementSemanticAction(Program *keyDefinition);
+Statement *TimeStatementSemanticAction(TimeSignature *timeSignature);
+Statement *TempoStatementSemanticAction(TempoDeclaration *tempoDeclaration);
+Statement *NotesStatementSemanticAction(NoteSequence *noteSequence);
+TimeSignature *TimeSignatureSemanticAction(int numerator, int denominator);
+TempoDeclaration *TempoDeclarationSemanticAction(TokenLabel tempoName);
+NoteSequence *SingleNoteSequenceSemanticAction(Note *note);
+NoteSequence *MultipleNoteSequenceSemanticAction(NoteSequence *noteSequence,
+                                                 Note *note);
+Note *NoteWithDurationSemanticAction(Expression *note, NoteDuration duration);
 #endif

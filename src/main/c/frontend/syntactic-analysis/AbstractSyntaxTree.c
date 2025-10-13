@@ -81,6 +81,57 @@ void destroyKeyDefinition(KeyDefinition *keyDefinition) {
   }
 }
 
+void destroyTimeSignature(TimeSignature *timeSignature) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (timeSignature != NULL) {
+    free(timeSignature);
+  }
+}
+
+void destroyTempoDeclaration(TempoDeclaration *tempoDeclaration) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (tempoDeclaration != NULL) {
+    if (tempoDeclaration->tempoName != NULL) {
+      free(tempoDeclaration->tempoName);
+    }
+    free(tempoDeclaration);
+  }
+}
+
+void destroyNoteSequence(NoteSequence *noteSequence) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (noteSequence != NULL) {
+    if (noteSequence->notes != NULL) {
+      for (int i = 0; i < noteSequence->count; i++) {
+        destroyNote(noteSequence->notes[i]);
+      }
+      free(noteSequence->notes);
+    }
+    free(noteSequence);
+  }
+}
+
+void destroyStatement(Statement *statement) {
+  logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
+  if (statement != NULL) {
+    switch (statement->type) {
+    case KEY_STATEMENT:
+      destroyKeyDefinition(statement->keyDefinition);
+      break;
+    case TIME_STATEMENT:
+      destroyTimeSignature(statement->timeSignature);
+      break;
+    case TEMPO_STATEMENT:
+      destroyTempoDeclaration(statement->tempoDeclaration);
+      break;
+    case NOTES_STATEMENT:
+      destroyNoteSequence(statement->noteSequence);
+      break;
+    }
+    free(statement);
+  }
+}
+
 void destroyProgram(Program *program) {
   logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
   if (program != NULL) {
@@ -94,7 +145,15 @@ void destroyProgram(Program *program) {
       break;
     case KEY_DEFINITION:
       printf("DEBUG: destroyProgram - Calling destroyKeyDefinition\n");
-      destroyKeyDefinition(program->key);
+      if (program->statements != NULL) {
+        // Handle statement list
+        for (int i = 0; program->statements[i] != NULL; i++) {
+          destroyStatement(program->statements[i]);
+        }
+        free(program->statements);
+      } else {
+        destroyKeyDefinition(program->key);
+      }
       break;
     default:
       printf("DEBUG: destroyProgram - Unknown program type: %d\n",

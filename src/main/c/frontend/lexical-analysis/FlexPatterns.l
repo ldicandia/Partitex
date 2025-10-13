@@ -71,6 +71,17 @@ whitespace			[[:space:]]+
 "major"                             { return TokenLexemeAction(MAJOR); }
 "minor"                             { return TokenLexemeAction(MINOR); }
 
+"whole"                             { return TokenLexemeAction(WHOLE); }
+"half"                              { return TokenLexemeAction(HALF); }
+"quarter"                           { return TokenLexemeAction(QUARTER); }
+"eighth"                            { return TokenLexemeAction(EIGHTH); }
+"sixteenth"                         { return TokenLexemeAction(SIXTEENTH); }
+
+"allegro"                           { return TokenLexemeAction(ALLEGRO); }
+"andante"                           { return TokenLexemeAction(ANDANTE); }
+"largo"                             { return TokenLexemeAction(LARGO); }
+"presto"                            { return TokenLexemeAction(PRESTO); }
+
 "do"                                { return TokenLexemeAction(DO); }
 "re"                                { return TokenLexemeAction(RE); }
 "mi"                                { return TokenLexemeAction(MI); }
@@ -78,10 +89,14 @@ whitespace			[[:space:]]+
 "sol"                               { return TokenLexemeAction(SOL); }
 "la"                                { return TokenLexemeAction(LA); }
 "si"                                { return TokenLexemeAction(SI); }
+"notes"                             { return TokenLexemeAction(NOTES); }
 
 ";"                                 { return TokenLexemeAction(SEMICOLON); }
 "."                                 { return TokenLexemeAction(DOT); }
 "|"                                 { return TokenLexemeAction(PIPE); }
+":"                                 { return TokenLexemeAction(COLON); }
+","                                 { return TokenLexemeAction(COMMA); }
+"/"                                 { return TokenLexemeAction(SLASH); }
 
 "-"									{ return ArithmeticOperatorLexemeAction(SUB); }
 "*"									{ return ArithmeticOperatorLexemeAction(MUL); }

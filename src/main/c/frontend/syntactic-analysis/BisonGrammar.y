@@ -28,6 +28,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 
 	signed int integer;
 	TokenLabel token;
+	char * string;
 
 	/** Non-terminals. */
 
@@ -35,6 +36,12 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 	Expression * expression;
 	Factor * factor;
 	Program * program;
+	Statement * statement;
+	Statement ** statementList;
+	TimeSignature * timeSignature;
+	TempoDeclaration * tempoDeclaration;
+	NoteSequence * noteSequence;
+	Note * note;
 }
 
 /**
@@ -48,6 +55,11 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { destroyConstant($$); } <constant>
 %destructor { destroyExpression($$); } <expression>
 %destructor { destroyFactor($$); } <factor>
+%destructor { destroyStatement($$); } <statement>
+%destructor { destroyTimeSignature($$); } <timeSignature>
+%destructor { destroyTempoDeclaration($$); } <tempoDeclaration>
+%destructor { destroyNoteSequence($$); } <noteSequence>
+%destructor { destroyNote($$); } <note>
 
 /** Terminals. */
 %token <integer> INTEGER
@@ -83,6 +95,25 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <token> SEMICOLON
 %token <token> DOT
 %token <token> PIPE
+%token <token> COLON
+%token <token> COMMA
+%token <token> SLASH
+
+// Note duration tokens.
+%token <token> WHOLE
+%token <token> HALF
+%token <token> QUARTER
+%token <token> EIGHTH
+%token <token> SIXTEENTH
+
+// Tempo tokens.
+%token <token> ALLEGRO
+%token <token> ANDANTE
+%token <token> LARGO
+%token <token> PRESTO
+
+// Additional music tokens.
+%token <token> NOTES
 
 
 /** Non-terminals. */
@@ -90,10 +121,22 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %type <expression> expression
 %type <factor> factor
 %type <program> program
+%type <statement> statement
+%type <timeSignature> time_signature
+%type <tempoDeclaration> tempo_declaration
+%type <noteSequence> note_sequence
+%type <note> note_with_duration
 
 %type <program> key_definition
 %type <expression> note
 %type <token> scale_type
+%type <token> note_duration
+%type <token> tempo_name
+
+%type <statementList> statement_list
+%type <statement> time_statement
+%type <statement> tempo_statement
+%type <statement> notes_statement
 
 /**
  * Precedence and associativity.
@@ -109,8 +152,18 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 // IMPORTANT: To use λ in the following grammar, use the %empty symbol.
 
 program: expression                                      { $$ = ExpressionProgramSemanticAction($1); }
-       | key_definition                                 { $$ = KeyDefinitionProgramSemanticAction($1); }
+       | statement_list                                 { $$ = StatementListProgramSemanticAction($1); }
        ;
+
+statement_list: statement                               { $$ = SingleStatementListSemanticAction($1); }
+              | statement_list statement               { $$ = MultipleStatementListSemanticAction($1, $2); }
+              ;
+
+statement: key_definition                              { $$ = KeyDefinitionStatementSemanticAction($1); }
+         | time_statement                              { $$ = $1; }
+         | tempo_statement                             { $$ = $1; }
+         | notes_statement                             { $$ = $1; }
+         ;
 
 // Defina la estructura para una key
 key_definition: KEY note scale_type SEMICOLON           { $$ = KeyDefinitionSemanticAction($2, $3); }
@@ -130,6 +183,44 @@ note: DO DOT INTEGER                                    { $$ = NoteOctaveSemanti
 scale_type: MAJOR                                       { $$ = $1; }
           | MINOR                                       { $$ = $1; }
           ;
+
+// Time signature statement
+time_statement: TIME time_signature SEMICOLON           { $$ = TimeStatementSemanticAction($2); }
+              ;
+
+time_signature: INTEGER SLASH INTEGER                   { $$ = TimeSignatureSemanticAction($1, $3); }
+              ;
+
+// Tempo statement
+tempo_statement: TEMPO tempo_declaration SEMICOLON      { $$ = TempoStatementSemanticAction($2); }
+               ;
+
+tempo_name: ALLEGRO                                     { $$ = $1; }
+          | ANDANTE                                     { $$ = $1; }
+          | LARGO                                       { $$ = $1; }
+          | PRESTO                                      { $$ = $1; }
+          ;
+
+tempo_declaration: tempo_name                           { $$ = TempoDeclarationSemanticAction($1); }
+                 ;
+
+// Notes statement
+notes_statement: NOTES COLON note_sequence SEMICOLON    { $$ = NotesStatementSemanticAction($3); }
+               ;
+
+note_sequence: note_with_duration                       { $$ = SingleNoteSequenceSemanticAction($1); }
+             | note_sequence COMMA note_with_duration   { $$ = MultipleNoteSequenceSemanticAction($1, $3); }
+             ;
+
+note_with_duration: note note_duration                  { $$ = NoteWithDurationSemanticAction($1, $2); }
+                  ;
+
+note_duration: WHOLE                                    { $$ = WHOLE_NOTE; }
+             | HALF                                     { $$ = HALF_NOTE; }
+             | QUARTER                                  { $$ = QUARTER_NOTE; }
+             | EIGHTH                                   { $$ = EIGHTH_NOTE; }
+             | SIXTEENTH                                { $$ = SIXTEENTH_NOTE; }
+             ;
 
 // Acá necesitamos mantener las reglas de expresión para que la gramática esté completa
 expression: expression ADD expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, ADDITION); }
