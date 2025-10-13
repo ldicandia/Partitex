@@ -67,7 +67,6 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 
 // Music-specific tokens.
 %token <token> KEY
-%token <token> NOTE
 %token <token> TEMPO
 %token <token> TIME
 %token <token> MAJOR
@@ -79,7 +78,6 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <token> SOL
 %token <token> LA
 %token <token> SI
-%token <token> 
 
 // Punctuation tokens.
 %token <token> SEMICOLON
@@ -132,5 +130,20 @@ note: DO DOT INTEGER                                    { $$ = NoteOctaveSemanti
 scale_type: MAJOR                                       { $$ = $1; }
           | MINOR                                       { $$ = $1; }
           ;
+
+// Acá necesitamos mantener las reglas de expresión para que la gramática esté completa
+expression: expression ADD expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, ADDITION); }
+          | expression SUB expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, SUBTRACTION); }
+          | expression MUL expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, MULTIPLICATION); }
+          | expression DIV expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, DIVISION); }
+          | factor                                       { $$ = FactorExpressionSemanticAction($1); }
+          ;
+
+factor: constant                                        { $$ = ConstantFactorSemanticAction($1); }
+      | OPEN_PARENTHESIS expression CLOSE_PARENTHESIS   { $$ = ExpressionFactorSemanticAction($2); }
+      ;
+
+constant: INTEGER                                       { $$ = IntegerConstantSemanticAction($1); }
+        ;
 
 %%

@@ -3,33 +3,51 @@
 
 #include "../../support/logging/Logger.h"
 #include "../../support/type/ModuleDestructor.h"
+#include "../../support/type/TokenLabel.h"
 #include <stdlib.h>
 
 /** Initialize module's internal state. */
 ModuleDestructor initializeAbstractSyntaxTreeModule();
 
 /**
- * This type definitions allows self-referencing types (e.g., an expression
- * that is made of another expressions, such as talking about you in 3rd
- * person, but without the madness).
+ * Forward declarations for self-referencing types
  */
-
-typedef enum ExpressionType ExpressionType;
-typedef enum FactorType FactorType;
-
 typedef struct Constant Constant;
 typedef struct Expression Expression;
 typedef struct Factor Factor;
+typedef struct Note Note;
+typedef struct KeyDefinition KeyDefinition;
 typedef struct Program Program;
 
 /**
- * Node types for the Abstract Syntax Tree (AST).
+ * Enumeration types
  */
+typedef enum {
+  ADDITION,
+  SUBTRACTION,
+  MULTIPLICATION,
+  DIVISION,
+  FACTOR,
+  NOTE
+} ExpressionType;
 
-enum ExpressionType { ADDITION, DIVISION, FACTOR, MULTIPLICATION, SUBTRACTION };
+typedef enum { CONSTANT, EXPRESSION } FactorType;
 
-enum FactorType { CONSTANT, EXPRESSION };
+typedef enum {
+  DO_NOTE,
+  RE_NOTE,
+  MI_NOTE,
+  FA_NOTE,
+  SOL_NOTE,
+  LA_NOTE,
+  SI_NOTE
+} NoteType;
 
+typedef enum { EXPRESSION_PROGRAM, KEY_DEFINITION } ProgramType;
+
+/**
+ * AST node structures
+ */
 struct Constant {
   int value;
 };
@@ -42,28 +60,44 @@ struct Factor {
   FactorType type;
 };
 
+struct Note {
+  NoteType type;
+  int octave;
+};
+
 struct Expression {
+  ExpressionType type;
   union {
-    Factor *factor;
     struct {
       Expression *leftExpression;
       Expression *rightExpression;
     };
+    Factor *factor;
+    Note *note;
   };
-  ExpressionType type;
+};
+
+struct KeyDefinition {
+  Expression *note;
+  TokenLabel scaleType; // MAJOR o MINOR
 };
 
 struct Program {
-  Expression *expression;
+  ProgramType type;
+  union {
+    Expression *expression;
+    KeyDefinition *key;
+  };
 };
 
 /**
- * Node recursive super-duper-trambolik-destructors.
+ * Node destructors
  */
-
 void destroyConstant(Constant *constant);
 void destroyExpression(Expression *expression);
 void destroyFactor(Factor *factor);
 void destroyProgram(Program *program);
+void destroyNote(Note *note);
+void destroyKeyDefinition(KeyDefinition *keyDefinition);
 
 #endif

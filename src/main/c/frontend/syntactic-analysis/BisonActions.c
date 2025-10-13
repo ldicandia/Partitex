@@ -2,84 +2,112 @@
 
 /* MODULE INTERNAL STATE */
 
-static CompilerState * _compilerState = NULL;
-static Logger * _logger = NULL;
+static CompilerState *_compilerState = NULL;
+static Logger *_logger = NULL;
 
 /** Shutdown module's internal state. */
 void _shutdownBisonActionsModule() {
-	if (_logger != NULL) {
-		logDebugging(_logger, "Destroying module: BisonActions...");
-		destroyLogger(_logger);
-		_logger = NULL;
-	}
-	_compilerState = NULL;
+  if (_logger != NULL) {
+    logDebugging(_logger, "Destroying module: BisonActions...");
+    destroyLogger(_logger);
+    _logger = NULL;
+  }
+  _compilerState = NULL;
 }
 
-ModuleDestructor initializeBisonActionsModule(CompilerState * compilerState) {
-	_compilerState = compilerState;
-	_logger = createLogger("BisonActions");
-	return _shutdownBisonActionsModule;
+ModuleDestructor initializeBisonActionsModule(CompilerState *compilerState) {
+  _compilerState = compilerState;
+  _logger = createLogger("BisonActions");
+  return _shutdownBisonActionsModule;
 }
 
 /* IMPORTED FUNCTIONS */
 
 /* PRIVATE FUNCTIONS */
 
-static void _logSyntacticAnalyzerAction(const char * functionName);
+static void _logSyntacticAnalyzerAction(const char *functionName);
 
 /**
  * Logs a syntactic-analyzer action in DEBUGGING level.
  */
-static void _logSyntacticAnalyzerAction(const char * functionName) {
-	logDebugging(_logger, "%s", functionName);
+static void _logSyntacticAnalyzerAction(const char *functionName) {
+  logDebugging(_logger, "%s", functionName);
 }
 
 /* PUBLIC FUNCTIONS */
 
-Constant * IntegerConstantSemanticAction(const int value) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Constant * constant = calloc(1, sizeof(Constant));
-	constant->value = value;
-	return constant;
+Constant *IntegerConstantSemanticAction(const int value) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Constant *constant = calloc(1, sizeof(Constant));
+  constant->value = value;
+  return constant;
 }
 
-Expression * ArithmeticExpressionSemanticAction(Expression * leftExpression, Expression * rightExpression, ExpressionType type) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Expression * expression = calloc(1, sizeof(Expression));
-	expression->leftExpression = leftExpression;
-	expression->rightExpression = rightExpression;
-	expression->type = type;
-	return expression;
+Expression *ArithmeticExpressionSemanticAction(Expression *leftExpression,
+                                               Expression *rightExpression,
+                                               ExpressionType type) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Expression *expression = calloc(1, sizeof(Expression));
+  expression->leftExpression = leftExpression;
+  expression->rightExpression = rightExpression;
+  expression->type = type;
+  return expression;
 }
 
-Expression * FactorExpressionSemanticAction(Factor * factor) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Expression * expression = calloc(1, sizeof(Expression));
-	expression->factor = factor;
-	expression->type = FACTOR;
-	return expression;
+Expression *FactorExpressionSemanticAction(Factor *factor) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Expression *expression = calloc(1, sizeof(Expression));
+  expression->factor = factor;
+  expression->type = FACTOR;
+  return expression;
 }
 
-Factor * ConstantFactorSemanticAction(Constant * constant) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Factor * factor = calloc(1, sizeof(Factor));
-	factor->constant = constant;
-	factor->type = CONSTANT;
-	return factor;
+Factor *ConstantFactorSemanticAction(Constant *constant) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Factor *factor = calloc(1, sizeof(Factor));
+  factor->constant = constant;
+  factor->type = CONSTANT;
+  return factor;
 }
 
-Factor * ExpressionFactorSemanticAction(Expression * expression) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Factor * factor = calloc(1, sizeof(Factor));
-	factor->expression = expression;
-	factor->type = EXPRESSION;
-	return factor;
+Factor *ExpressionFactorSemanticAction(Expression *expression) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Factor *factor = calloc(1, sizeof(Factor));
+  factor->expression = expression;
+  factor->type = EXPRESSION;
+  return factor;
 }
 
-Program * ExpressionProgramSemanticAction(Expression * expression) {
-	_logSyntacticAnalyzerAction(__FUNCTION__);
-	Program * program = calloc(1, sizeof(Program));
-	program->expression = expression;
-	_compilerState->abstractSyntaxtTree = program;
-	return program;
+Program *ExpressionProgramSemanticAction(Expression *expression) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Program *program = calloc(1, sizeof(Program));
+  program->expression = expression;
+  _compilerState->abstractSyntaxtTree = program;
+  return program;
+}
+
+Expression *NoteOctaveSemanticAction(NoteType noteType, const int octave) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Expression *expression = calloc(1, sizeof(Expression));
+  expression->type = NOTE;
+  expression->note = calloc(1, sizeof(Note));
+  expression->note->type = noteType;
+  expression->note->octave = octave;
+  return expression;
+}
+
+Program *KeyDefinitionSemanticAction(Expression *note, TokenLabel scaleType) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  Program *program = calloc(1, sizeof(Program));
+  program->type = KEY_DEFINITION;
+  program->key = calloc(1, sizeof(KeyDefinition));
+  program->key->note = note;
+  program->key->scaleType = scaleType;
+  return program;
+}
+
+Program *KeyDefinitionProgramSemanticAction(Program *keyDefinition) {
+  _logSyntacticAnalyzerAction(__FUNCTION__);
+  _compilerState->abstractSyntaxtTree = keyDefinition;
+  return keyDefinition;
 }
