@@ -1,22 +1,13 @@
 %{
-
 #include "../../support/type/TokenLabel.h"
 #include "AbstractSyntaxTree.h"
 #include "BisonActions.h"
 
-/**
- * The error reporting function for Bison parser.
- *
- * @todo Add location to the grammar and "pushToken" API function.
- *
- * @see https://www.gnu.org/software/bison/manual/html_node/Error-Reporting-Function.html
- * @see https://www.gnu.org/software/bison/manual/html_node/Tracking-Locations.html
- */
-void yyerror(const YYLTYPE * location, const char * message) {}
-
+void yyerror(const YYLTYPE * location, const char * message) {
+    fprintf(stderr, "Parse error at line %d: %s\n", location->first_line, message);
+}
 %}
 
-// You touch this, and you die.
 %define api.pure full
 %define api.push-pull push
 %define api.value.union.name SemanticValue
@@ -24,282 +15,152 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %locations
 
 %union {
-	/** Terminals. */
+    signed int integer;
+    TokenLabel token;
+    char * string;
 
-	signed int integer;
-	TokenLabel token;
-	char * string;
-
-	/** Non-terminals. */
-
-	Constant * constant;
-	Expression * expression;
-	Factor * factor;
-	Program * program;
-	Statement * statement;
-	Statement ** statementList;
-	TimeSignature * timeSignature;
-	TempoDeclaration * tempoDeclaration;
-	NoteSequence * noteSequence;
-	Note * note;
-	Pattern * pattern;
-	Melody * melody;
-	RepeatStatement * repeatStatement;
-	SimultaneousNotes * simultaneousNotes;
-	TimeValue * timeValue;
+    Program * program;
+    KeyDefinition * key_definition;
+    TimeSignature * time_signature;
+    NoteSequence * note_sequence;
+    Note * note;
+    Pattern * pattern;
+    Statement * statement;
+    Statement ** statement_list;
 }
 
-/**
- * Destructors. This functions are executed after the parsing ends, so if the
- * AST must be used in the following phases of the compiler you shouldn't used
- * this approach for the AST root node ("program" non-terminal, in this
- * grammar), or it will drop the entire tree even if the parsing succeeds.
- *
- * @see https://www.gnu.org/software/bison/manual/html_node/Destructor-Decl.html
- */
-%destructor { destroyConstant($$); } <constant>
-%destructor { destroyExpression($$); } <expression>
-%destructor { destroyFactor($$); } <factor>
-%destructor { destroyStatement($$); } <statement>
-%destructor { destroyTimeSignature($$); } <timeSignature>
-%destructor { destroyTempoDeclaration($$); } <tempoDeclaration>
-%destructor { destroyNoteSequence($$); } <noteSequence>
+%destructor { destroyProgram($$); } <program>
+%destructor { destroyKeyDefinition($$); } <key_definition>
+%destructor { destroyTimeSignature($$); } <time_signature>
+%destructor { destroyNoteSequence($$); } <note_sequence>
 %destructor { destroyNote($$); } <note>
-%destructor { destroySimultaneousNotes($$); } <simultaneousNotes>
-%destructor { destroyTimeValue($$); } <timeValue>
+%destructor { destroyPattern($$); } <pattern>
+%destructor { destroyStatement($$); } <statement>
+%destructor { free($$); } <statement_list>
 %destructor { free($$); } <string>
 
-/** Terminals. */
 %token <integer> INTEGER
-%token <token> ADD
-%token <token> CLOSE_BRACE
-%token <token> CLOSE_COMMENT
-%token <token> CLOSE_PARENTHESIS
-%token <token> DIV
-%token <token> MUL
-%token <token> OPEN_BRACE
-%token <token> OPEN_COMMENT
-%token <token> OPEN_PARENTHESIS
-%token <token> SUB
-
-%token <token> IGNORED
+%token <token> DEF KEY TIME TREBBLE BASS TREBBLE_AND_BASS SEMICOLON SLASH NOTES MAIN END PATTERN BEMOL SHARP WHOLE HALF QUARTER EIGHTH SIXTEENTH THIRTYSECOND SIXTYFOURTH STACCATO LEGATO ACCENT SET FORTE PIANO MEZZO_FORTE ALLEGRO ANDANTE MODERATO STEP REST REPEAT COLON MAJOR MINOR
+%token <token> DO RE MI FA SOL LA SI
+%token <string> IDENTIFIER
 %token <token> UNKNOWN
 
-// Music-specific tokens.
-%token <token> KEY
-%token <token> TEMPO
-%token <token> TIME
-%token <token> MAJOR
-%token <token> MINOR
-%token <token> DO
-%token <token> RE
-%token <token> MI
-%token <token> FA
-%token <token> SOL
-%token <token> LA
-%token <token> SI
-
-// Punctuation tokens.
-%token <token> SEMICOLON
-%token <token> DOT
-%token <token> PIPE
-%token <token> COLON
-%token <token> COMMA
-%token <token> SEMICOLON_SEP
-%token <token> SLASH
-
-// Note duration tokens.
-%token <token> WHOLE
-%token <token> HALF
-%token <token> QUARTER
-%token <token> EIGHTH
-%token <token> SIXTEENTH
-
-// Tempo tokens.
-%token <token> ALLEGRO
-%token <token> ANDANTE
-%token <token> LARGO
-%token <token> PRESTO
-
-// Additional music tokens.
-%token <token> NOTES
-%token <token> PATTERN
-%token <token> MELODY
-%token <token> REPEAT
-%token <token> SIMULTANEOUS
-%token <token> INSTRUMENT
-%token <token> TIME_SECONDS
-%token <token> TIME_MILLISECONDS
-%token <token> TIME_MINUTES
-%token <string> IDENTIFIER
-%token <note> NOTE_TOKEN
-
-
-/** Non-terminals. */
-%type <constant> constant
-%type <expression> expression
-%type <factor> factor
-%type <program> program
+%type <program> program definitions_section notes
+%type <statement_list> definitions functions lines
+%type <key_definition> key
+%type <time_signature> time time_signature
+%type <note> note_macro note
+%type <pattern> main macro
 %type <statement> statement
-%type <timeSignature> time_signature
-%type <tempoDeclaration> tempo_declaration
-%type <noteSequence> note_sequence
-%type <note> note_with_duration
-
-%type <program> key_definition
-%type <expression> note
-%type <token> scale_type
-%type <token> note_duration
-%type <token> tempo_name
-
-%type <statementList> statement_list
-%type <statement> time_statement
-%type <statement> tempo_statement
-%type <statement> notes_statement
-%type <statement> pattern_statement
-%type <statement> repeat_statement
-%type <statement> melody_statement
-%type <statement> simultaneous_statement
-
-%type <simultaneousNotes> simultaneous_definition
-%type <timeValue> time_value
-%type <token> time_unit
-
-/**
- * Precedence and associativity.
- *
- * @see https://en.cppreference.com/w/cpp/language/operator_precedence.html
- * @see https://www.gnu.org/software/bison/manual/html_node/Precedence.html
- */
-%left ADD SUB
-%left MUL DIV
-%left COMMA
+%type <token> scale_type bemol_sharp figure articulation configurations tempo_configuration dynamics_configuration rest_step
+%type <integer> quantifier
 
 %%
 
-// IMPORTANT: To use λ in the following grammar, use the %empty symbol.
-
-program: expression                                      { $$ = ExpressionProgramSemanticAction($1); }
-       | statement_list                                 { $$ = StatementListProgramSemanticAction($1); }
+program: definitions_section notes { $$ = ProgramSemanticAction($1, $2); }
        ;
 
-statement_list: statement                               { $$ = SingleStatementListSemanticAction($1); }
-              | statement_list statement               { $$ = MultipleStatementListSemanticAction($1, $2); }
-              ;
+definitions_section: DEF COLON definitions { $$ = DefinitionsSectionSemanticAction($3); }
+                   | %empty { $$ = NULL; }
+                   ;
 
-statement: key_definition                              { $$ = KeyDefinitionStatementSemanticAction($1); }
-         | time_statement                              { $$ = $1; }
-         | tempo_statement                             { $$ = $1; }
-         | notes_statement                             { $$ = $1; }
-         | pattern_statement                           { $$ = $1; }
-         | repeat_statement                            { $$ = $1; }
-         | melody_statement                            { $$ = $1; }
-         | simultaneous_statement                      { $$ = $1; }
-         ;
+definitions: key definitions { $$ = AddDefinitionSemanticAction($1, $2); }
+           | time definitions { $$ = AddDefinitionSemanticAction($1, $2); }
+           | TREBBLE SEMICOLON definitions { $$ = AddDefinitionSemanticAction(ClefStatementSemanticAction(TREBBLE), $3); }
+           | BASS SEMICOLON definitions { $$ = AddDefinitionSemanticAction(ClefStatementSemanticAction(BASS), $3); }
+           | TREBBLE_AND_BASS SEMICOLON definitions { $$ = AddDefinitionSemanticAction(ClefStatementSemanticAction(TREBBLE_AND_BASS), $3); }
+           | %empty { $$ = NULL; }
+           ;
 
-// Defina la estructura para una key
-key_definition: KEY note scale_type SEMICOLON           { $$ = KeyDefinitionSemanticAction($2, $3); }
-              ;
+key: KEY note_macro scale_type SEMICOLON { $$ = KeyDefinitionSemanticAction($2, $3); }
+   ;
 
-// Defina la estructura de una nota con octava (sin punto como separador)
-note: NOTE_TOKEN                                       { $$ = NoteFromTokenSemanticAction($1); }
-    | DO INTEGER                                        { $$ = NoteOctaveSemanticAction(DO_NOTE, $2); }
-    | RE INTEGER                                        { $$ = NoteOctaveSemanticAction(RE_NOTE, $2); }
-    | MI INTEGER                                        { $$ = NoteOctaveSemanticAction(MI_NOTE, $2); }
-    | FA INTEGER                                        { $$ = NoteOctaveSemanticAction(FA_NOTE, $2); }
-    | SOL INTEGER                                       { $$ = NoteOctaveSemanticAction(SOL_NOTE, $2); }
-    | LA INTEGER                                        { $$ = NoteOctaveSemanticAction(LA_NOTE, $2); }
-    | SI INTEGER                                        { $$ = NoteOctaveSemanticAction(SI_NOTE, $2); }
+time: TIME time_signature SEMICOLON { $$ = TimeStatementSemanticAction($2); }
     ;
 
-// Defina el tipo de escala
-scale_type: MAJOR                                       { $$ = $1; }
-          | MINOR                                       { $$ = $1; }
-          ;
-
-// Time signature statement
-time_statement: TIME time_signature SEMICOLON           { $$ = TimeStatementSemanticAction($2); }
+time_signature: INTEGER SLASH INTEGER { $$ = TimeSignatureSemanticAction($1, $3); }
               ;
 
-time_signature: INTEGER SLASH INTEGER                   { $$ = TimeSignatureSemanticAction($1, $3); }
-              ;
-
-// Tempo statement
-tempo_statement: TEMPO tempo_declaration SEMICOLON      { $$ = TempoStatementSemanticAction($2); }
-               ;
-
-tempo_name: ALLEGRO                                     { $$ = $1; }
-          | ANDANTE                                     { $$ = $1; }
-          | LARGO                                       { $$ = $1; }
-          | PRESTO                                      { $$ = $1; }
+note_macro: note INTEGER { $$ = NoteOctaveSemanticAction($1, $2); }
+          | note { $$ = NoteOctaveSemanticAction($1, 4); }
           ;
 
-tempo_declaration: tempo_name                           { $$ = TempoDeclarationSemanticAction($1); }
-                 ;
+note: DO { $$ = NoteSemanticAction(DO_NOTE); }
+    | RE { $$ = NoteSemanticAction(RE_NOTE); }
+    | MI { $$ = NoteSemanticAction(MI_NOTE); }
+    | FA { $$ = NoteSemanticAction(FA_NOTE); }
+    | SOL { $$ = NoteSemanticAction(SOL_NOTE); }
+    | LA { $$ = NoteSemanticAction(LA_NOTE); }
+    | SI { $$ = NoteSemanticAction(SI_NOTE); }
+    ;
 
-// Notes statement
-notes_statement: NOTES COLON note_sequence SEMICOLON    { $$ = NotesStatementSemanticAction($3); }
-               ;
-
-note_sequence: note_with_duration                       { $$ = SingleNoteSequenceSemanticAction($1); }
-             | note_sequence COMMA note_with_duration   { $$ = MultipleNoteSequenceSemanticAction($1, $3); }
-             ;
-
-note_with_duration: note note_duration                  { $$ = NoteWithDurationSemanticAction($1, $2); }
-                  ;
-
-note_duration: WHOLE                                    { $$ = WHOLE_NOTE; }
-             | HALF                                     { $$ = HALF_NOTE; }
-             | QUARTER                                  { $$ = QUARTER_NOTE; }
-             | EIGHTH                                   { $$ = EIGHTH_NOTE; }
-             | SIXTEENTH                                { $$ = SIXTEENTH_NOTE; }
-             ;
-
-// Pattern definition
-pattern_statement: PATTERN IDENTIFIER COLON note_sequence SEMICOLON    { $$ = PatternStatementSemanticAction($2, $4); }
-                ;
-
-// Melody definition with optional duration
-melody_statement: MELODY IDENTIFIER COLON note_sequence SEMICOLON                    { $$ = MelodyStatementSemanticAction($2, $4, NULL); }
-                | MELODY IDENTIFIER COLON note_sequence time_value SEMICOLON         { $$ = MelodyStatementSemanticAction($2, $4, $5); }
-                ;
-
-// Repeat statement
-repeat_statement: REPEAT IDENTIFIER INTEGER SEMICOLON                               { $$ = RepeatStatementSemanticAction($2, $3, NULL); }
-                | REPEAT IDENTIFIER INTEGER time_value SEMICOLON                    { $$ = RepeatStatementSemanticAction($2, $3, $4); }
-                ;
-
-// Simultaneous notes for multiple instruments
-simultaneous_statement: SIMULTANEOUS COLON simultaneous_definition SEMICOLON        { $$ = SimultaneousStatementSemanticAction($3); }
-                      ;
-
-simultaneous_definition: INSTRUMENT IDENTIFIER COLON note_sequence                  { $$ = SingleSimultaneousSemanticAction($2, $4); }
-                       | simultaneous_definition SEMICOLON_SEP INSTRUMENT IDENTIFIER COLON note_sequence  { $$ = MultipleSimultaneousSemanticAction($1, $4, $6); }
-                       ;
-
-// Time value with units
-time_value: INTEGER time_unit                          { $$ = TimeValueSemanticAction($1, $2); }
+scale_type: MAJOR { $$ = MAJOR; }
+          | MINOR { $$ = MINOR; }
+          | %empty { $$ = MAJOR; }
           ;
 
-time_unit: TIME_SECONDS                                { $$ = SECONDS; }
-         | TIME_MILLISECONDS                           { $$ = MILLISECONDS; }
-         | TIME_MINUTES                                { $$ = MINUTES; }
+notes: NOTES COLON functions { $$ = NotesStatementSemanticAction($3); }
+     ;
+
+functions: main functions { $$ = AddFunctionSemanticAction($1, $2); }
+         | macro functions { $$ = AddFunctionSemanticAction($1, $2); }
+         | %empty { $$ = NULL; }
          ;
 
-// Identifier (handled directly by lexer)
+main: MAIN COLON lines END SEMICOLON { $$ = MainFunctionSemanticAction($3); }
+    ;
 
-expression: expression ADD expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, ADDITION); }
-          | expression SUB expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, SUBTRACTION); }
-          | expression MUL expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, MULTIPLICATION); }
-          | expression DIV expression                    { $$ = ArithmeticExpressionSemanticAction($1, $3, DIVISION); }
-          | factor                                       { $$ = FactorExpressionSemanticAction($1); }
-          ;
+macro: PATTERN IDENTIFIER COLON lines END SEMICOLON { $$ = PatternFunctionSemanticAction($2, $4); }
+     ;
 
-factor: constant                                        { $$ = ConstantFactorSemanticAction($1); }
-      | OPEN_PARENTHESIS expression CLOSE_PARENTHESIS   { $$ = ExpressionFactorSemanticAction($2); }
+lines: note_macro bemol_sharp figure articulation SEMICOLON lines { $$ = SingleLineSemanticAction($1, $2, $3, $4, $6); }
+     | SET configurations SEMICOLON lines { $$ = SetConfigurationSemanticAction($2, $4); }
+     | rest_step INTEGER SEMICOLON lines { $$ = RestStepSemanticAction($1, $2, $4); }
+     | IDENTIFIER quantifier SEMICOLON lines { $$ = FunctionCallSemanticAction($1, $2, $4); }
+     | %empty { $$ = NULL; }
+     ;
+
+bemol_sharp: BEMOL { $$ = BEMOL; }
+           | SHARP { $$ = SHARP; }
+           | %empty { $$ = 0; }
+           ;
+
+figure: WHOLE { $$ = WHOLE; }
+      | HALF { $$ = HALF; }
+      | QUARTER { $$ = QUARTER; }
+      | EIGHTH { $$ = EIGHTH; }
+      | SIXTEENTH { $$ = SIXTEENTH; }
+      | THIRTYSECOND { $$ = THIRTYSECOND; }
+      | SIXTYFOURTH { $$ = SIXTYFOURTH; }
+      | %empty { $$ = QUARTER; }
       ;
 
-constant: INTEGER                                       { $$ = IntegerConstantSemanticAction($1); }
-        ;
+articulation: STACCATO { $$ = STACCATO; }
+            | LEGATO { $$ = LEGATO; }
+            | ACCENT { $$ = ACCENT; }
+            | %empty { $$ = 0; }
+            ;
+
+quantifier: REPEAT INTEGER { $$ = $2; }
+          | %empty { $$ = 1; }
+          ;
+
+rest_step: REST { $$ = REST; }
+         | STEP { $$ = STEP; }
+         ;
+
+configurations: tempo_configuration { $$ = $1; }
+             | dynamics_configuration { $$ = $1; }
+             ;
+
+tempo_configuration: ALLEGRO { $$ = ALLEGRO; }
+                   | ANDANTE { $$ = ANDANTE; }
+                   | MODERATO { $$ = MODERATO; }
+                   ;
+
+dynamics_configuration: PIANO { $$ = PIANO; }
+                      | MEZZO_FORTE { $$ = MEZZO_FORTE; }
+                      | FORTE { $$ = FORTE; }
+                      ;
 
 %%

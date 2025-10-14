@@ -1,4 +1,5 @@
 #ifndef BISON_ACTIONS_HEADER
+#ifndef BISON_ACTIONS_HEADER
 #define BISON_ACTIONS_HEADER
 
 #include "../../support/logging/Logger.h"
@@ -9,56 +10,24 @@
 #include "BisonParser.h"
 #include <stdlib.h>
 
-/** Initialize module's internal state. */
-ModuleDestructor initializeBisonActionsModule();
+ModuleDestructor initializeBisonActionsModule(CompilerState *compilerState);
 
-/**
- * Bison semantic actions.
- */
-
-Constant *IntegerConstantSemanticAction(const int value);
-Expression *ArithmeticExpressionSemanticAction(Expression *leftExpression,
-                                               Expression *rightExpression,
-                                               ExpressionType type);
-Expression *FactorExpressionSemanticAction(Factor *factor);
-Factor *ConstantFactorSemanticAction(Constant *constant);
-Factor *ExpressionFactorSemanticAction(Expression *expression);
-Program *ExpressionProgramSemanticAction(Expression *expression);
-Expression *NoteOctaveSemanticAction(NoteType noteType, const int octave);
-Expression *NoteFromTokenSemanticAction(Note *note);
-Program *KeyDefinitionSemanticAction(Expression *note, TokenLabel scaleType);
-Program *KeyDefinitionProgramSemanticAction(Program *keyDefinition);
-
-Program *StatementListProgramSemanticAction(Statement **statements);
-Statement **SingleStatementListSemanticAction(Statement *statement);
-Statement **MultipleStatementListSemanticAction(Statement **statements,
-                                                Statement *statement);
-Statement *KeyDefinitionStatementSemanticAction(Program *keyDefinition);
-Statement *TimeStatementSemanticAction(TimeSignature *timeSignature);
-Statement *TempoStatementSemanticAction(TempoDeclaration *tempoDeclaration);
-Statement *NotesStatementSemanticAction(NoteSequence *noteSequence);
+Program *ProgramSemanticAction(Program *definitions_section, Program *notes);
+Program *DefinitionsSectionSemanticAction(Statement **definitions);
+Statement **AddDefinitionSemanticAction(Statement *definition, Statement **definitions);
+KeyDefinition *KeyDefinitionSemanticAction(Note *note, TokenLabel scale_type);
+Statement *TimeStatementSemanticAction(TimeSignature *time_signature);
+Statement *ClefStatementSemanticAction(TokenLabel clef);
 TimeSignature *TimeSignatureSemanticAction(int numerator, int denominator);
-TempoDeclaration *TempoDeclarationSemanticAction(TokenLabel tempoName);
-NoteSequence *SingleNoteSequenceSemanticAction(Note *note);
-NoteSequence *MultipleNoteSequenceSemanticAction(NoteSequence *noteSequence,
-                                                 Note *note);
-Note *NoteWithDurationSemanticAction(Expression *note, NoteDuration duration);
-
-Statement *PatternStatementSemanticAction(char *name,
-                                          NoteSequence *noteSequence);
-Statement *MelodyStatementSemanticAction(char *name, NoteSequence *noteSequence,
-                                         TimeValue *duration);
-Statement *RepeatStatementSemanticAction(char *patternName, int repeatCount,
-                                         TimeValue *interval);
-Statement *
-SimultaneousStatementSemanticAction(SimultaneousNotes *simultaneousNotes);
-SimultaneousNotes *SingleSimultaneousSemanticAction(char *instrumentName,
-                                                    NoteSequence *noteSequence);
-SimultaneousNotes *
-MultipleSimultaneousSemanticAction(SimultaneousNotes *existing,
-                                   char *instrumentName,
-                                   NoteSequence *noteSequence);
-TimeValue *TimeValueSemanticAction(int value, TimeUnit unit);
-char *IdentifierSemanticAction(TokenLabel token);
+Program *NotesStatementSemanticAction(Statement **functions);
+Statement **AddFunctionSemanticAction(Pattern *function, Statement **functions);
+Pattern *MainFunctionSemanticAction(Statement **lines);
+Pattern *PatternFunctionSemanticAction(char *name, Statement **lines);
+Statement **SingleLineSemanticAction(Note *note, TokenLabel bemol_sharp, TokenLabel figure, TokenLabel articulation, Statement **lines);
+Statement **SetConfigurationSemanticAction(TokenLabel configuration, Statement **lines);
+Statement **RestStepSemanticAction(TokenLabel type, int number, Statement **lines);
+Statement **FunctionCallSemanticAction(char *identifier, int quantifier, Statement **lines);
+Note *NoteOctaveSemanticAction(Note *note, int octave);
+Note *NoteSemanticAction(NoteType note_type);
 
 #endif

@@ -57,54 +57,75 @@ whitespace			[[:space:]]+
 
 %}
 
-"{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
+/* "{"									{ return EnterImportExpressionLexemeAction(IMPORT_EXPRESSION); }
 <IMPORT_EXPRESSION>[^{}]+			{ return SubexpressionLexemeAction(); }
 <IMPORT_EXPRESSION>"}"				{ return LeaveImportExpressionLexemeAction(); }
-<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); }
+<IMPORT_EXPRESSION>.				{ return UnknownLexemeAction(); } */
 
 "/*"								{ return EnterMultilineCommentLexemeAction(MULTILINE_COMMENT); }
 <MULTILINE_COMMENT>"*/"				{ return LeaveMultilineCommentLexemeAction(); }
 <MULTILINE_COMMENT>[^*]+			{ return IgnoredLexemeAction(); }
 <MULTILINE_COMMENT>.				{ return IgnoredLexemeAction(); }
 
+"def"                            { return TokenLexemeAction(DEF); }
+"main"                           { return TokenLexemeAction(MAIN); }
+"end"                            { return TokenLexemeAction(END); }
 "key"                               { return TokenLexemeAction(KEY); }
-"tempo"                             { return TokenLexemeAction(TEMPO); }
+/* "tempo"                             { return TokenLexemeAction(TEMPO); } */
 "time"                              { return TokenLexemeAction(TIME); }
 "major"                             { return TokenLexemeAction(MAJOR); }
 "minor"                             { return TokenLexemeAction(MINOR); }
+"cleff"                            { return TokenLexemeAction(CLEFF); }
+"trebble"                           { return TokenLexemeAction(TREBBLE); }
+"bass"                              { return TokenLexemeAction(BASS); }
+"trebble_and_bass"                 { return TokenLexemeAction(TREBBLE_AND_BASS); }
 
 "whole"                             { return TokenLexemeAction(WHOLE); }
 "half"                              { return TokenLexemeAction(HALF); }
 "quarter"                           { return TokenLexemeAction(QUARTER); }
 "eighth"                            { return TokenLexemeAction(EIGHTH); }
 "sixteenth"                         { return TokenLexemeAction(SIXTEENTH); }
+"thirtysecond"                      { return TokenLexemeAction(THIRTYSECOND); }
+"sixtyfourth"                       { return TokenLexemeAction(SIXTYFOURTH); }
 
 "allegro"                           { return TokenLexemeAction(ALLEGRO); }
 "andante"                           { return TokenLexemeAction(ANDANTE); }
-"largo"                             { return TokenLexemeAction(LARGO); }
-"presto"                            { return TokenLexemeAction(PRESTO); }
+"moderato"                          { return TokenLexemeAction(MODERATO); }
+/* "largo"                             { return TokenLexemeAction(LARGO); }
+"presto"                            { return TokenLexemeAction(PRESTO); } */
 
-"do"[0-9]+                          { return NoteWithOctaveLexemeAction(DO_NOTE, atoi(yytext + 2)); }
+"notes"                             { return TokenLexemeAction(NOTES); }
+/* "do"[0-9]+                          { return NoteWithOctaveLexemeAction(DO_NOTE, atoi(yytext + 2)); }
 "re"[0-9]+                          { return NoteWithOctaveLexemeAction(RE_NOTE, atoi(yytext + 2)); }
 "mi"[0-9]+                          { return NoteWithOctaveLexemeAction(MI_NOTE, atoi(yytext + 2)); }
 "fa"[0-9]+                          { return NoteWithOctaveLexemeAction(FA_NOTE, atoi(yytext + 2)); }
 "sol"[0-9]+                         { return NoteWithOctaveLexemeAction(SOL_NOTE, atoi(yytext + 3)); }
 "la"[0-9]+                          { return NoteWithOctaveLexemeAction(LA_NOTE, atoi(yytext + 2)); }
-"si"[0-9]+                          { return NoteWithOctaveLexemeAction(SI_NOTE, atoi(yytext + 2)); }
-"do"                                { return TokenLexemeAction(DO); }
-"re"                                { return TokenLexemeAction(RE); }
-"mi"                                { return TokenLexemeAction(MI); }
-"fa"                                { return TokenLexemeAction(FA); }
-"sol"                               { return TokenLexemeAction(SOL); }
-"la"                                { return TokenLexemeAction(LA); }
-"si"                                { return TokenLexemeAction(SI); }
-"notes"                             { return TokenLexemeAction(NOTES); }
+"si"[0-9]+                          { return NoteWithOctaveLexemeAction(SI_NOTE, atoi(yytext + 2)); } */
+"do"|"c"                                { return TokenLexemeAction(DO); }
+"re"|"d"                                { return TokenLexemeAction(RE); }
+"mi"|"e"                                { return TokenLexemeAction(MI); }
+"fa"|"f"                                { return TokenLexemeAction(FA); }
+"sol"|"g"                               { return TokenLexemeAction(SOL); }
+"la"|"a"                                { return TokenLexemeAction(LA); }
+"si"|"b"                                { return TokenLexemeAction(SI); }
+"bemol"|"$"                            { return TokenLexemeAction(BEMOL); }
+"sharp"|"#"                           { return TokenLexemeAction(SHARP); }
+"staccato"                           { return TokenLexemeAction(STACCATO); }
+"legato"                            { return TokenLexemeAction(LEGATO); }
+"accent"                            { return TokenLexemeAction(ACCENT); }
 
+"set"                              { return TokenLexemeAction(SET); }
+"rest"                             { return TokenLexemeAction(REST); }
 "pattern"                           { return TokenLexemeAction(PATTERN); }
-"melody"                            { return TokenLexemeAction(MELODY); }
+/* "melody"                            { return TokenLexemeAction(MELODY); } */
 "repeat"                            { return TokenLexemeAction(REPEAT); }
-"simultaneous"                      { return TokenLexemeAction(SIMULTANEOUS); }
-"instrument"                        { return TokenLexemeAction(INSTRUMENT); }
+/* "simultaneous"                      { return TokenLexemeAction(SIMULTANEOUS); }
+"instrument"                        { return TokenLexemeAction(INSTRUMENT); } */
+"piano"                            { return TokenLexemeAction(PIANO); }
+"mezzo_forte"                      { return TokenLexemeAction(MEZZO_FORTE); }
+"forte"                            { return TokenLexemeAction(FORTE); }
+"step"                             { return TokenLexemeAction(STEP); }
 
 "seconds"                           { return TokenLexemeAction(TIME_SECONDS); }
 "milliseconds"                      { return TokenLexemeAction(TIME_MILLISECONDS); }

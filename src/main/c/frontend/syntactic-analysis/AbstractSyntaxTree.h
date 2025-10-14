@@ -6,198 +6,91 @@
 #include "../../support/type/TokenLabel.h"
 #include <stdlib.h>
 
-/** Initialize module's internal state. */
 ModuleDestructor initializeAbstractSyntaxTreeModule();
 
-/**
- * Forward declarations for self-referencing types
- */
-typedef struct Constant Constant;
-typedef struct Expression Expression;
-typedef struct Factor Factor;
-typedef struct Note Note;
+typedef struct Program Program;
 typedef struct KeyDefinition KeyDefinition;
 typedef struct TimeSignature TimeSignature;
-typedef struct TempoDeclaration TempoDeclaration;
 typedef struct NoteSequence NoteSequence;
+typedef struct Note Note;
 typedef struct Pattern Pattern;
-typedef struct Melody Melody;
-typedef struct RepeatStatement RepeatStatement;
-typedef struct SimultaneousNotes SimultaneousNotes;
-typedef struct TimeValue TimeValue;
 typedef struct Statement Statement;
-typedef struct Program Program;
-
-/**
- * Enumeration types
- */
-typedef enum {
-  ADDITION,
-  SUBTRACTION,
-  MULTIPLICATION,
-  DIVISION,
-  FACTOR,
-  NOTE
-} ExpressionType;
-
-typedef enum { CONSTANT, EXPRESSION } FactorType;
 
 typedef enum {
-  DO_NOTE,
-  RE_NOTE,
-  MI_NOTE,
-  FA_NOTE,
-  SOL_NOTE,
-  LA_NOTE,
-  SI_NOTE
+    DO_NOTE, RE_NOTE, MI_NOTE, FA_NOTE, SOL_NOTE, LA_NOTE, SI_NOTE
 } NoteType;
 
-typedef enum { EXPRESSION_PROGRAM, KEY_DEFINITION } ProgramType;
+typedef enum {
+    NONE_ALT, BEMOL, SHARP
+} AlterationType;
 
 typedef enum {
-  KEY_STATEMENT,
-  TIME_STATEMENT,
-  TEMPO_STATEMENT,
-  NOTES_STATEMENT,
-  PATTERN_STATEMENT,
-  REPEAT_STATEMENT,
-  MELODY_STATEMENT
-} StatementType;
+    NONE_ART, STACCATO, LEGATO, ACCENT
+} ArticulationType;
 
 typedef enum {
-  WHOLE_NOTE,
-  HALF_NOTE,
-  QUARTER_NOTE,
-  EIGHTH_NOTE,
-  SIXTEENTH_NOTE
+    NONE_DUR, WHOLE, HALF, QUARTER, EIGHTH, SIXTEENTH, THIRTYSECOND, SIXTYFOURTH
 } NoteDuration;
 
-typedef enum { SECONDS, MILLISECONDS, MINUTES } TimeUnit;
-
-typedef enum { NOTE_TYPE, MELODY_TYPE, PATTERN_TYPE } MusicalDataType;
-
-/**
- * AST node structures
- */
-struct Constant {
-  int value;
-};
-
-struct Factor {
-  union {
-    Constant *constant;
-    Expression *expression;
-  };
-  FactorType type;
-};
+typedef enum {
+    KEY_STATEMENT, TIME_STATEMENT, CLEF_STATEMENT, NOTE_STATEMENT, SET_STATEMENT, REST_STEP_STATEMENT, PATTERN_STATEMENT, REPEAT_STATEMENT
+} StatementType;
 
 struct Note {
-  NoteType type;
-  int octave;
-  NoteDuration duration;
-};
-
-struct Expression {
-  ExpressionType type;
-  union {
-    struct {
-      Expression *leftExpression;
-      Expression *rightExpression;
-    };
-    Factor *factor;
-    Note *note;
-  };
+    NoteType type;
+    char *name; // "do", "re", etc.
+    int octave;
+    AlterationType alteration;
+    NoteDuration duration;
+    ArticulationType articulation;
 };
 
 struct KeyDefinition {
-  Expression *note;
-  TokenLabel scaleType; // MAJOR o MINOR
+    Note *note;
+    TokenLabel scale_type;
 };
 
 struct TimeSignature {
-  int numerator;
-  int denominator;
-};
-
-struct TempoDeclaration {
-  char *tempoName; // e.g., "allegro"
+    int numerator;
+    int denominator;
 };
 
 struct NoteSequence {
-  Note **notes;
-  int count;
-};
-
-struct TimeValue {
-  int value;
-  TimeUnit unit;
+    Statement **statements;
+    int count;
 };
 
 struct Pattern {
-  char *name;
-  NoteSequence *noteSequence;
-  MusicalDataType dataType;
-};
-
-struct Melody {
-  char *name;
-  NoteSequence *noteSequence;
-  TimeValue *duration;
-};
-
-struct RepeatStatement {
-  char *patternName;
-  int repeatCount;
-  TimeValue *interval; // Optional interval between repetitions
-};
-
-struct SimultaneousNotes {
-  NoteSequence **noteSequences; // Array of note sequences for different instruments
-  int instrumentCount;
-  char **instrumentNames; // Names of instruments
+    char *name; // NULL for main
+    NoteSequence *note_sequence;
 };
 
 struct Statement {
-  StatementType type;
-  union {
-    KeyDefinition *keyDefinition;
-    TimeSignature *timeSignature;
-    TempoDeclaration *tempoDeclaration;
-    NoteSequence *noteSequence;
-    Pattern *pattern;
-    RepeatStatement *repeatStatement;
-    Melody *melody;
-    SimultaneousNotes *simultaneousNotes;
-  };
+    StatementType type;
+    union {
+        KeyDefinition *key_definition;
+        TimeSignature *time_signature;
+        TokenLabel clef;
+        Note *note;
+        TokenLabel setting; // For SET (tempo or dynamics)
+        struct { TokenLabel type; int number; } rest_step;
+        Pattern *pattern;
+        struct { char *pattern_name; int repeat_count; } repeat;
+    };
 };
 
 struct Program {
-  ProgramType type;
-  union {
-    Expression *expression;
-    KeyDefinition *key;
-    Statement **statements; // For multiple statements
-  };
-  int statementCount; // Number of statements if using statements array
+    Statement **def_statements;
+    Statement **notes_statements;
+    int main_count;
 };
 
-/**
- * Node destructors
- */
-void destroyConstant(Constant *constant);
-void destroyExpression(Expression *expression);
-void destroyFactor(Factor *factor);
 void destroyProgram(Program *program);
+void destroyKeyDefinition(KeyDefinition *key_definition);
+void destroyTimeSignature(TimeSignature *time_signature);
+void destroyNoteSequence(NoteSequence *note_sequence);
 void destroyNote(Note *note);
-void destroyKeyDefinition(KeyDefinition *keyDefinition);
-void destroyTimeSignature(TimeSignature *timeSignature);
-void destroyTempoDeclaration(TempoDeclaration *tempoDeclaration);
-void destroyNoteSequence(NoteSequence *noteSequence);
 void destroyPattern(Pattern *pattern);
-void destroyMelody(Melody *melody);
-void destroyRepeatStatement(RepeatStatement *repeatStatement);
-void destroySimultaneousNotes(SimultaneousNotes *simultaneousNotes);
-void destroyTimeValue(TimeValue *timeValue);
 void destroyStatement(Statement *statement);
 
 #endif
