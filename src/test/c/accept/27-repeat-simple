@@ -1,0 +1,2 @@
+pattern chorus: do4 quarter, re4 quarter, mi4 quarter, fa4 quarter;
+repeat chorus 2;

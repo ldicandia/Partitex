@@ -1,0 +1,5 @@
+simultaneous:
+    instrument piano: do4 whole, mi4 whole, sol4 whole;;
+    instrument violin: do5 whole, mi5 whole, sol5 whole;;
+    instrument bass: do3 whole, mi3 whole, sol3 whole
+;

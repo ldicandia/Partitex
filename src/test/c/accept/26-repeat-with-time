@@ -1,0 +1,2 @@
+pattern intro: do4 quarter, re4 quarter, mi4 quarter, fa4 quarter;
+repeat intro 3 2 seconds;

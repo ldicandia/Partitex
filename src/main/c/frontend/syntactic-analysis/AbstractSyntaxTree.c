@@ -209,16 +209,11 @@ void destroyStatement(Statement *statement) {
 void destroyProgram(Program *program) {
   logDebugging(_logger, "Executing destructor: %s", __FUNCTION__);
   if (program != NULL) {
-    printf("DEBUG: destroyProgram - Program type is %d (KEY_DEFINITION=%d, "
-           "EXPRESSION_PROGRAM=%d)\n",
-           program->type, KEY_DEFINITION, EXPRESSION_PROGRAM);
     switch (program->type) {
     case EXPRESSION_PROGRAM:
-      printf("DEBUG: destroyProgram - Calling destroyExpression\n");
       destroyExpression(program->expression);
       break;
     case KEY_DEFINITION:
-      printf("DEBUG: destroyProgram - Calling destroyKeyDefinition\n");
       if (program->statements != NULL) {
         int statementCount = 0;
         for (int i = 0; program->statements[i] != NULL; i++) {
@@ -233,8 +228,6 @@ void destroyProgram(Program *program) {
       }
       break;
     default:
-      printf("DEBUG: destroyProgram - Unknown program type: %d\n",
-             program->type);
       break;
     }
     free(program);
