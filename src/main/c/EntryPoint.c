@@ -51,7 +51,9 @@ const int main(const int length, const char **arguments) {
     compilationStatus = FAILED;
   }
   logDebugging(logger, "Releasing AST resources...");
-  destroyProgram(program);
+  if (program != NULL) {
+    destroyProgram(program);
+  }
   for (int k = (sizeof(moduleDestructors) / sizeof(ModuleDestructor)) - 1;
        0 <= k; --k) {
     moduleDestructors[k]();

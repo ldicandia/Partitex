@@ -59,6 +59,7 @@ typedef enum {
   TIME_STATEMENT,
   TEMPO_STATEMENT,
   NOTES_STATEMENT,
+  SIMULTANEOUS_STATEMENT,
   PATTERN_STATEMENT,
   REPEAT_STATEMENT,
   MELODY_STATEMENT
@@ -199,5 +200,12 @@ void destroyRepeatStatement(RepeatStatement *repeatStatement);
 void destroySimultaneousNotes(SimultaneousNotes *simultaneousNotes);
 void destroyTimeValue(TimeValue *timeValue);
 void destroyStatement(Statement *statement);
+void destroyStatementList(Statement **list);
+void destroyProgram(Program *program);
+void destroyPattern(Pattern *pattern);
+void destroyMelody(Melody *melody);
+void destroyRepeatStatement(RepeatStatement *repeatStatement);
+void destroyKeyDefinition(KeyDefinition *keyDef);
+
 
 #endif

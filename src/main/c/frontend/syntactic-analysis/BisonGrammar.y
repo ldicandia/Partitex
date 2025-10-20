@@ -61,12 +61,16 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { destroyExpression($$); } <expression>
 %destructor { destroyFactor($$); } <factor>
 %destructor { destroyStatement($$); } <statement>
+%destructor { destroyStatementList($$); } <statementList>
 %destructor { destroyTimeSignature($$); } <timeSignature>
 %destructor { destroyTempoDeclaration($$); } <tempoDeclaration>
 %destructor { destroyNoteSequence($$); } <noteSequence>
 %destructor { destroyNote($$); } <note>
 %destructor { destroySimultaneousNotes($$); } <simultaneousNotes>
 %destructor { destroyTimeValue($$); } <timeValue>
+%destructor { destroyPattern($$); } <pattern>
+%destructor { destroyMelody($$); } <melody>
+%destructor { destroyRepeatStatement($$); } <repeatStatement>
 %destructor { free($$); } <string>
 
 /** Terminals. */

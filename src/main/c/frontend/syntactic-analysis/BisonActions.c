@@ -318,7 +318,7 @@ Statement *
 SimultaneousStatementSemanticAction(SimultaneousNotes *simultaneousNotes) {
   _logSyntacticAnalyzerAction(__FUNCTION__);
   Statement *statement = calloc(1, sizeof(Statement));
-  statement->type = NOTES_STATEMENT;
+  statement->type = SIMULTANEOUS_STATEMENT;
   statement->simultaneousNotes = simultaneousNotes;
   return statement;
 }
@@ -356,14 +356,10 @@ MultipleSimultaneousSemanticAction(SimultaneousNotes *existing,
   if (newNoteSequences == NULL || newInstrumentNames == NULL) {
     if (newNoteSequences != NULL &&
         newNoteSequences != existing->noteSequences) {
-      memcpy(newNoteSequences, existing->noteSequences,
-             (existing->instrumentCount + 1) * sizeof(NoteSequence *));
       free(newNoteSequences);
     }
     if (newInstrumentNames != NULL &&
         newInstrumentNames != existing->instrumentNames) {
-      memcpy(newInstrumentNames, existing->instrumentNames,
-             (existing->instrumentCount + 1) * sizeof(char *));
       free(newInstrumentNames);
     }
 
