@@ -116,7 +116,6 @@ whitespace			[[:space:]]+
 "|"                                 { return TokenLexemeAction(PIPE); }
 ":"                                 { return TokenLexemeAction(COLON); }
 ","                                 { return TokenLexemeAction(COMMA); }
-"/"                                 { return TokenLexemeAction(SLASH); }
 
 "-"									{ return ArithmeticOperatorLexemeAction(SUB); }
 "*"									{ return ArithmeticOperatorLexemeAction(MUL); }
