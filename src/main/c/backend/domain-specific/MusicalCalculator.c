@@ -361,13 +361,19 @@ MusicalComputationResult executeMusicalCalculator(CompilerState *compilerState) 
             }
         } else if (program->key) {
             context.currentKey = program->key;
+            char* oldResult = result;
             result = concatenate(2, result, "Key definition processed");
+            free(oldResult);
         }
     } else if (program->type == EXPRESSION_PROGRAM) {
         // Handle mathematical expressions (fallback to original calculator)
+        char* oldResult = result;
         result = concatenate(2, result, "Mathematical expression processed");
+        free(oldResult);
     }
     
     logDebugging(_logger, "Musical calculation completed successfully");
-    return _createSuccessResult(result);
+    MusicalComputationResult finalResult = _createSuccessResult(result);
+    free(result);
+    return finalResult;
 }
