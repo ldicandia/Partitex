@@ -1,4 +1,6 @@
 #include "AbstractSyntaxTree.h"
+#include <stdlib.h>
+
 
 /* MODULE INTERNAL STATE */
 
@@ -188,7 +190,10 @@ void destroyStatement(Statement *statement) {
     case NOTES_STATEMENT:
       if (statement->noteSequence != NULL) {
         destroyNoteSequence(statement->noteSequence);
-      } else if (statement->simultaneousNotes != NULL) {
+      }
+      break;
+    case SIMULTANEOUS_STATEMENT:
+      if (statement->simultaneousNotes != NULL) {
         destroySimultaneousNotes(statement->simultaneousNotes);
       }
       break;
@@ -232,4 +237,14 @@ void destroyProgram(Program *program) {
     }
     free(program);
   }
+}
+
+void destroyStatementList(Statement **list) {
+    if (list == NULL) return;
+
+    for (int i = 0; list[i] != NULL; i++) {
+        destroyStatement(list[i]);
+    }
+
+    free(list);
 }

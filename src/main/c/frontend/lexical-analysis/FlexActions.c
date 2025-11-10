@@ -180,8 +180,10 @@ CompilationStatus IdentifierLexemeAction() {
 CompilationStatus NoteWithOctaveLexemeAction(NoteType noteType, int octave) {
   Token *token = createToken(_lexicalAnalyzer, NOTE_TOKEN);
   token->semanticValue->note = calloc(1, sizeof(Note));
-  token->semanticValue->note->type = noteType;
-  token->semanticValue->note->octave = octave;
+  if (token->semanticValue->note != NULL) {
+    token->semanticValue->note->type = noteType;
+    token->semanticValue->note->octave = octave;
+  }
   _logTokenAction(__FUNCTION__, token);
   CompilationStatus status = pushToken(_lexicalAnalyzer, token);
   destroyToken(token);

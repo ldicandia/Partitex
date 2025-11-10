@@ -61,6 +61,7 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %destructor { destroyExpression($$); } <expression>
 %destructor { destroyFactor($$); } <factor>
 %destructor { destroyStatement($$); } <statement>
+%destructor { destroyStatementList($$); } <statementList>
 %destructor { destroyTimeSignature($$); } <timeSignature>
 %destructor { destroyTempoDeclaration($$); } <tempoDeclaration>
 %destructor { destroyNoteSequence($$); } <noteSequence>
@@ -106,7 +107,6 @@ void yyerror(const YYLTYPE * location, const char * message) {}
 %token <token> COLON
 %token <token> COMMA
 %token <token> SEMICOLON_SEP
-%token <token> SLASH
 
 // Note duration tokens.
 %token <token> WHOLE
@@ -221,7 +221,7 @@ scale_type: MAJOR                                       { $$ = $1; }
 time_statement: TIME time_signature SEMICOLON           { $$ = TimeStatementSemanticAction($2); }
               ;
 
-time_signature: INTEGER SLASH INTEGER                   { $$ = TimeSignatureSemanticAction($1, $3); }
+time_signature: INTEGER DIV INTEGER                   { $$ = TimeSignatureSemanticAction($1, $3); }
               ;
 
 // Tempo statement
