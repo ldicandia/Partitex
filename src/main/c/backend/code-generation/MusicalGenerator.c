@@ -1,5 +1,6 @@
 #include "MusicalGenerator.h"
 #include "../domain-specific/MusicalCalculator.h"
+#include <stdint.h>
 
 /* MODULE INTERNAL STATE */
 
@@ -119,13 +120,17 @@ static void _generateNote(Note *note, const unsigned int indentationLevel) {
     const char* noteName = noteTypeToString(note->type);
     const char* duration = noteDurationToString(note->duration);
     
+    // Safety check for NULL pointers
+    if (noteName == NULL) noteName = "?";
+    if (duration == NULL) duration = "?";
+    
     switch (_outputFormat) {
         case OUTPUT_LILYPOND:
-            _output(indentationLevel, "%s%s%s%s", noteName, "4", duration, " ");
+            _output(indentationLevel, "%s%s%s", noteName, "4", duration);
             break;
         case OUTPUT_TEXT:
         default:
-            _output(indentationLevel, "%s%s%s%s%s", noteName, "4/", duration, " ");
+            _output(indentationLevel, "%s%s%s", noteName, "4/", duration);
             break;
     }
 }
@@ -137,13 +142,16 @@ static void _generateNoteSequence(NoteSequence *noteSequence, const unsigned int
     if (noteSequence == NULL || noteSequence->count == 0) return;
     
     for (int i = 0; i < noteSequence->count; i++) {
+        if (noteSequence->notes[i] == NULL) break;
         _generateNote(noteSequence->notes[i], indentationLevel);
         if (i < noteSequence->count - 1) {
+            // Print separator directly to avoid issues with _output
             if (_outputFormat == OUTPUT_LILYPOND) {
-                _output(0, "%s", " ");
+                fprintf(stdout, " ");
             } else {
-                _output(0, "%s", ", ");
+                fprintf(stdout, ", ");
             }
+            fflush(stdout);
         }
     }
 }
@@ -281,12 +289,16 @@ static void _generateRepeatStatement(RepeatStatement *repeatStatement, const uns
  * Generates a key definition
  */
 static void _generateKeyDefinition(KeyDefinition *keyDefinition, const unsigned int indentationLevel) {
-    if (keyDefinition == NULL) return;
+    if (keyDefinition == NULL || keyDefinition->note == NULL) return;
     
-    const char* noteName = noteTypeToString(keyDefinition->note->type);
-    // TokenLabel is a signed int, we'll assume positive values for major, negative for minor
-    // or we can use a more sophisticated approach based on the actual token values
-    const char* scaleType = "major"; // Default to major, could be enhanced to check actual token values
+    // Extract the note from the expression
+    const char* noteName = "C"; // Default
+    if (keyDefinition->note->type == NOTE && keyDefinition->note->note != NULL) {
+        noteName = noteTypeToString(keyDefinition->note->note->type);
+    }
+    
+    // Determine scale type from the token label (274=MAJOR, 275=MINOR)
+    const char* scaleType = (keyDefinition->scaleType == 274) ? "major" : "minor";
     
     switch (_outputFormat) {
         case OUTPUT_LILYPOND:
@@ -322,13 +334,15 @@ static void _generateTimeSignature(TimeSignature *timeSignature, const unsigned 
 static void _generateTempoDeclaration(TempoDeclaration *tempoDeclaration, const unsigned int indentationLevel) {
     if (tempoDeclaration == NULL) return;
     
+    const char* tempoName = (tempoDeclaration->tempoName != NULL) ? tempoDeclaration->tempoName : "unknown";
+    
     switch (_outputFormat) {
         case OUTPUT_LILYPOND:
-            _output(indentationLevel, "\\tempo \"%s\"\n", tempoDeclaration->tempoName);
+            _output(indentationLevel, "\\tempo \"%s\"\n", tempoName);
             break;
         case OUTPUT_TEXT:
         default:
-            _output(indentationLevel, "Tempo: %s\n", tempoDeclaration->tempoName);
+            _output(indentationLevel, "Tempo: %s\n", tempoName);
             break;
     }
 }
@@ -353,8 +367,12 @@ static void _generateStatement(Statement *statement, const unsigned int indentat
             if (statement->noteSequence) {
                 _output(indentationLevel, "Notes: ");
                 _generateNoteSequence(statement->noteSequence, 0);
-                _output(0, "%s", "\n");
-            } else if (statement->simultaneousNotes) {
+                fprintf(stdout, "\n");
+                fflush(stdout);
+            }
+            break;
+        case SIMULTANEOUS_STATEMENT:
+            if (statement->simultaneousNotes) {
                 _generateSimultaneousNotes(statement->simultaneousNotes, indentationLevel);
             }
             break;

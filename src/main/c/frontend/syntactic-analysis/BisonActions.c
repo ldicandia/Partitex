@@ -218,16 +218,16 @@ TempoDeclaration *TempoDeclarationSemanticAction(TokenLabel tempoName) {
 
   const char *tempoNameStr;
   switch (tempoName) {
-  case 274:
+  case 294:
     tempoNameStr = "allegro";
     break; // ALLEGRO
-  case 275:
+  case 295:
     tempoNameStr = "andante";
     break; // ANDANTE
-  case 276:
+  case 296:
     tempoNameStr = "largo";
     break; // LARGO
-  case 277:
+  case 297:
     tempoNameStr = "presto";
     break; // PRESTO
   default:

@@ -135,7 +135,9 @@ MusicalComputationResult computeNote(Note *note, MusicalContext *context) {
     free(octaveStr);
     
     logDebugging(_logger, "Computed note: %s", noteString);
-    return _createSuccessResult(noteString);
+    MusicalComputationResult result = _createSuccessResult(noteString);
+    free(noteString);
+    return result;
 }
 
 MusicalComputationResult computeNoteSequence(NoteSequence *noteSequence, MusicalContext *context) {
@@ -160,6 +162,7 @@ MusicalComputationResult computeNoteSequence(NoteSequence *noteSequence, Musical
         
         char* newResult;
         if (i == 0) {
+            free(result); // Free the initial empty string
             newResult = noteResult.result;
         } else {
             newResult = concatenate(3, result, ", ", noteResult.result);
@@ -170,7 +173,9 @@ MusicalComputationResult computeNoteSequence(NoteSequence *noteSequence, Musical
     }
     
     logDebugging(_logger, "Computed note sequence: %s", result);
-    return _createSuccessResult(result);
+    MusicalComputationResult finalResult = _createSuccessResult(result);
+    free(result);
+    return finalResult;
 }
 
 MusicalComputationResult computePattern(Pattern *pattern, MusicalContext *context) {
@@ -190,7 +195,9 @@ MusicalComputationResult computePattern(Pattern *pattern, MusicalContext *contex
     free(sequenceResult.result);
     
     logDebugging(_logger, "Computed pattern: %s", newResult);
-    return _createSuccessResult(newResult);
+    MusicalComputationResult finalResult = _createSuccessResult(newResult);
+    free(newResult);
+    return finalResult;
 }
 
 MusicalComputationResult computeMelody(Melody *melody, MusicalContext *context) {
@@ -219,9 +226,14 @@ MusicalComputationResult computeMelody(Melody *melody, MusicalContext *context) 
     char* newResult = concatenate(2, result, durationStr);
     free(result);
     free(sequenceResult.result);
+    if (melody->duration != NULL && durationStr[0] != '\0') {
+        free(durationStr);
+    }
     
     logDebugging(_logger, "Computed melody: %s", newResult);
-    return _createSuccessResult(newResult);
+    MusicalComputationResult finalResult = _createSuccessResult(newResult);
+    free(newResult);
+    return finalResult;
 }
 
 MusicalComputationResult computeSimultaneousNotes(SimultaneousNotes *simultaneousNotes, MusicalContext *context) {
@@ -249,7 +261,9 @@ MusicalComputationResult computeSimultaneousNotes(SimultaneousNotes *simultaneou
     }
     
     logDebugging(_logger, "Computed simultaneous notes");
-    return _createSuccessResult(result);
+    MusicalComputationResult finalResult = _createSuccessResult(result);
+    free(result);
+    return finalResult;
 }
 
 MusicalComputationResult computeRepeatStatement(RepeatStatement *repeatStatement, MusicalContext *context) {
@@ -274,9 +288,14 @@ MusicalComputationResult computeRepeatStatement(RepeatStatement *repeatStatement
     char* newResult = concatenate(3, result, timesStr, intervalStr);
     free(result);
     free(timesStr);
+    if (repeatStatement->interval != NULL && intervalStr[0] != '\0') {
+        free(intervalStr);
+    }
     
     logDebugging(_logger, "Computed repeat statement: %s", newResult);
-    return _createSuccessResult(newResult);
+    MusicalComputationResult finalResult = _createSuccessResult(newResult);
+    free(newResult);
+    return finalResult;
 }
 
 MusicalComputationResult executeMusicalCalculator(CompilerState *compilerState) {
@@ -329,7 +348,10 @@ MusicalComputationResult executeMusicalCalculator(CompilerState *compilerState) 
                     case NOTES_STATEMENT:
                         if (statement->noteSequence) {
                             statementResult = computeNoteSequence(statement->noteSequence, &context);
-                        } else if (statement->simultaneousNotes) {
+                        }
+                        break;
+                    case SIMULTANEOUS_STATEMENT:
+                        if (statement->simultaneousNotes) {
                             statementResult = computeSimultaneousNotes(statement->simultaneousNotes, &context);
                         }
                         break;
