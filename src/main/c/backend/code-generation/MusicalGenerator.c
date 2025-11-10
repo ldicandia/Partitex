@@ -381,9 +381,17 @@ static void _generateProgram(Program *program) {
     
     if (program->type == KEY_DEFINITION) {
         if (program->statements != NULL) {
-            for (int i = 0; i < program->statementCount; i++) {
+            // Calculate statement count if not set (for safety)
+            int statementCount = program->statementCount;
+            if (statementCount == 0) {
+                while (program->statements[statementCount] != NULL) {
+                    statementCount++;
+                }
+            }
+            
+            for (int i = 0; i < statementCount; i++) {
                 _generateStatement(program->statements[i], 0);
-                if (i < program->statementCount - 1) {
+                if (i < statementCount - 1) {
                     _output(0, "%s", "\n");
                 }
             }

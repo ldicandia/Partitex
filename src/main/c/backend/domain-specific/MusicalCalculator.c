@@ -295,8 +295,16 @@ MusicalComputationResult executeMusicalCalculator(CompilerState *compilerState) 
     
     if (program->type == KEY_DEFINITION) {
         if (program->statements != NULL) {
+            // Calculate statement count if not set (for safety)
+            int statementCount = program->statementCount;
+            if (statementCount == 0) {
+                while (program->statements[statementCount] != NULL) {
+                    statementCount++;
+                }
+            }
+            
             // Process multiple statements
-            for (int i = 0; i < program->statementCount; i++) {
+            for (int i = 0; i < statementCount; i++) {
                 Statement *statement = program->statements[i];
                 if (statement == NULL) continue;
                 
@@ -343,7 +351,7 @@ MusicalComputationResult executeMusicalCalculator(CompilerState *compilerState) 
                     char* newResult = concatenate(3, result, "  ", statementResult.result);
                     free(result);
                     result = newResult;
-                    if (i < program->statementCount - 1) {
+                    if (i < statementCount - 1) {
                         char* newResult2 = concatenate(2, result, "\n");
                         free(result);
                         result = newResult2;
