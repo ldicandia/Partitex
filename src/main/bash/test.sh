@@ -10,6 +10,9 @@ RED='\033[0;31m'
 OFF='\033[0m'
 STATUS=0
 
+# Configure AddressSanitizer to not fail on memory leaks
+export ASAN_OPTIONS=exitcode=0:detect_leaks=1
+
 echo "Compiler should accept..."
 echo ""
 

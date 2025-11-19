@@ -156,6 +156,7 @@ CompilationStatus UnknownLexemeAction() {
 
 CompilationStatus TokenLexemeAction(TokenLabel label) {
   Token *token = createToken(_lexicalAnalyzer, label);
+  token->semanticValue->token = label; // Set the token label as semantic value
   _logTokenAction(__FUNCTION__, token);
   CompilationStatus status = pushToken(_lexicalAnalyzer, token);
   destroyToken(token);

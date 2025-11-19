@@ -126,6 +126,16 @@ Program *StatementListProgramSemanticAction(Statement **statements) {
   Program *program = calloc(1, sizeof(Program));
   program->type = KEY_DEFINITION;
   program->statements = statements;
+  
+  // Count statements (array ends with NULL)
+  int count = 0;
+  if (statements != NULL) {
+    while (statements[count] != NULL) {
+      count++;
+    }
+  }
+  program->statementCount = count;
+  
   _compilerState->abstractSyntaxtTree = program;
   return program;
 }
@@ -208,16 +218,16 @@ TempoDeclaration *TempoDeclarationSemanticAction(TokenLabel tempoName) {
 
   const char *tempoNameStr;
   switch (tempoName) {
-  case 274:
+  case 294:
     tempoNameStr = "allegro";
     break; // ALLEGRO
-  case 275:
+  case 295:
     tempoNameStr = "andante";
     break; // ANDANTE
-  case 276:
+  case 296:
     tempoNameStr = "largo";
     break; // LARGO
-  case 277:
+  case 297:
     tempoNameStr = "presto";
     break; // PRESTO
   default:

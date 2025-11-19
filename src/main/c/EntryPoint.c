@@ -1,5 +1,7 @@
 #include "backend/code-generation/Generator.h"
+#include "backend/code-generation/MusicalGenerator.h"
 #include "backend/domain-specific/Calculator.h"
+#include "backend/domain-specific/MusicalCalculator.h"
 #include "frontend/Frontend.h"
 #include "frontend/lexical-analysis/FlexActions.h"
 #include "frontend/syntactic-analysis/BisonActions.h"
@@ -26,23 +28,47 @@ const int main(const int length, const char **arguments) {
       initializeBisonActionsModule(&compilerState),
       initializeFrontendModule(lexicalAnalyzer),
       initializeCalculatorModule(),
-      initializeGeneratorModule()};
+      initializeMusicalCalculatorModule(),
+      initializeGeneratorModule(),
+      initializeMusicalGeneratorModule()};
   CompilationStatus compilationStatus = executeSyntacticAnalysis();
   Program *program = compilerState.abstractSyntaxtTree;
   if (compilationStatus == SUCCEEDED) {
     // ----------------------------------------------------------------------------------------
     // Beginning of the Backend...
     // ------------------------------------------------------------
-    // logDebugging(logger, "Computing expression value...");
-    // ComputationResult computationResult = executeCalculator(&compilerState);
-    // if (computationResult.succeeded) {
-    // 	compilerState.value = computationResult.value;
-    // 	executeGenerator(&compilerState);
-    // }
-    // else {
-    // 	logError(logger, "The computation phase rejects the input program.");
-    // 	compilationStatus = FAILED;
-    // }
+    logDebugging(logger, "Processing musical composition...");
+    
+    // Check if this is a musical program or mathematical expression
+    if (program->type == KEY_DEFINITION) {
+      // Musical program - use musical backend
+      MusicalComputationResult musicalResult = executeMusicalCalculator(&compilerState);
+      if (musicalResult.succeeded) {
+        logDebugging(logger, "Musical computation succeeded");
+        executeMusicalGenerator(&compilerState);
+      } else {
+        logError(logger, "The musical computation phase rejects the input program.");
+        compilationStatus = FAILED;
+      }
+      // Free musical result
+      if (musicalResult.result != NULL) {
+        free(musicalResult.result);
+      }
+    } else if (program->type == EXPRESSION_PROGRAM) {
+      // Mathematical expression - use original calculator
+      logDebugging(logger, "Computing mathematical expression value...");
+      ComputationResult computationResult = executeCalculator(&compilerState);
+      if (computationResult.succeeded) {
+        compilerState.value = computationResult.value;
+        executeGenerator(&compilerState);
+      } else {
+        logError(logger, "The computation phase rejects the input program.");
+        compilationStatus = FAILED;
+      }
+    } else {
+      logError(logger, "Unknown program type: %d", program->type);
+      compilationStatus = FAILED;
+    }
     // ...end of the Backend.
     // -----------------------------------------------------------------
     // ----------------------------------------------------------------------------------------
