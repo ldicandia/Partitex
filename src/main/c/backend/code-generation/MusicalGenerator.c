@@ -5,14 +5,13 @@
 #include <string.h>
 #include <stdio.h>
 
-/* MODULE INTERNAL STATE */
+
 
 static const char _indentationCharacter = ' ';
 static const char _indentationSize = 2;
 static Logger *_logger = NULL;
 static OutputFormat _outputFormat = OUTPUT_TEXT;
 
-/** Shutdown module's internal state. */
 void _shutdownMusicalGeneratorModule() {
     if (_logger != NULL) {
         logDebugging(_logger, "Destroying module: MusicalGenerator...");
@@ -26,7 +25,7 @@ ModuleDestructor initializeMusicalGeneratorModule() {
     return _shutdownMusicalGeneratorModule;
 }
 
-/** PRIVATE FUNCTIONS */
+
 
 static char *_indentation(const unsigned int indentationLevel);
 static void _output(const unsigned int indentationLevel, const char *const format, ...);
@@ -47,19 +46,17 @@ static void _generateTimeSignature(TimeSignature *timeSignature, const unsigned 
 static void _generateTempoDeclaration(TempoDeclaration *tempoDeclaration, const unsigned int indentationLevel);
 static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigned int indentationLevel);
 static int _getNoteIndex(NoteType noteType);
+static int _getNoteIndexWithOctave(NoteType noteType, int octave, int minOctave);
+static void _findOctaveRange(NoteSequence *noteSequence, int *minOctave, int *maxOctave);
+static char** _generateNoteNames(int minOctave, int maxOctave, int *totalNotes);
+static void _freeNoteNames(char** noteNames, int totalNotes);
 static int _getNoteDurationUnits(NoteDuration duration);
 static const char* _getNoteNameWithSharp(NoteType noteType);
 
-/**
- * Generates an indentation string for the specified level.
- */
 static char *_indentation(const unsigned int level) {
     return indentation(_indentationCharacter, level, _indentationSize);
 }
 
-/**
- * Outputs a formatted string to standard output.
- */
 static void _output(const unsigned int indentationLevel, const char *const format, ...) {
     va_list arguments;
     va_start(arguments, format);
@@ -72,9 +69,6 @@ static void _output(const unsigned int indentationLevel, const char *const forma
     va_end(arguments);
 }
 
-/**
- * Generates LilyPond prologue
- */
 static void _generateLilyPondPrologue(void) {
     _output(0, "%s",
             "\\version \"2.24.0\"\n"
@@ -87,9 +81,6 @@ static void _generateLilyPondPrologue(void) {
             "  \\new Staff {\n");
 }
 
-/**
- * Generates LilyPond epilogue
- */
 static void _generateLilyPondEpilogue(void) {
     _output(0, "%s",
             "  }\n"
@@ -98,9 +89,6 @@ static void _generateLilyPondEpilogue(void) {
             "}\n");
 }
 
-/**
- * Generates text prologue
- */
 static void _generateTextPrologue(void) {
     _output(0, "%s",
             "========================================\n"
@@ -108,9 +96,6 @@ static void _generateTextPrologue(void) {
             "========================================\n\n");
 }
 
-/**
- * Generates text epilogue
- */
 static void _generateTextEpilogue(void) {
     _output(0, "%s",
             "\n========================================\n"
@@ -118,16 +103,12 @@ static void _generateTextEpilogue(void) {
             "========================================\n");
 }
 
-/**
- * Generates a note in the appropriate format
- */
 static void _generateNote(Note *note, const unsigned int indentationLevel) {
     if (note == NULL) return;
     
     const char* noteName = noteTypeToString(note->type);
     const char* duration = noteDurationToString(note->duration);
     
-    // Safety check for NULL pointers
     if (noteName == NULL) noteName = "?";
     if (duration == NULL) duration = "?";
     
@@ -142,26 +123,73 @@ static void _generateNote(Note *note, const unsigned int indentationLevel) {
     }
 }
 
-/**
- * Gets the index of a note in the chromatic scale (0-11)
- * C=0, C#=1, D=2, D#=3, E=4, F=5, F#=6, G=7, G#=8, A=9, A#=10, B=11
- */
+static void _findOctaveRange(NoteSequence *noteSequence, int *minOctave, int *maxOctave) {
+    if (noteSequence == NULL || noteSequence->count == 0) {
+        *minOctave = 4;
+        *maxOctave = 4;
+        return;
+    }
+    
+    *minOctave = noteSequence->notes[0]->octave;
+    *maxOctave = noteSequence->notes[0]->octave;
+    
+    for (int i = 0; i < noteSequence->count; i++) {
+        if (noteSequence->notes[i] == NULL) break;
+        int octave = noteSequence->notes[i]->octave;
+        if (octave < *minOctave) *minOctave = octave;
+        if (octave > *maxOctave) *maxOctave = octave;
+    }
+}
+
+static int _getNoteIndexWithOctave(NoteType noteType, int octave, int minOctave) {
+    int baseNoteIndex = _getNoteIndex(noteType);
+    return (octave - minOctave) * 12 + baseNoteIndex;
+}
+
+static char** _generateNoteNames(int minOctave, int maxOctave, int *totalNotes) {
+    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    *totalNotes = (maxOctave - minOctave + 1) * 12;
+    
+    char** names = (char**)malloc(*totalNotes * sizeof(char*));
+    if (names == NULL) return NULL;
+    
+    int index = 0;
+    for (int octave = minOctave; octave <= maxOctave; octave++) {
+        for (int note = 0; note < 12; note++) {
+            names[index] = (char*)malloc(10 * sizeof(char));
+            if (names[index] != NULL) {
+                sprintf(names[index], "%s%d", noteNames[note], octave);
+            }
+            index++;
+        }
+    }
+    
+    return names;
+}
+
+static void _freeNoteNames(char** noteNames, int totalNotes) {
+    if (noteNames == NULL) return;
+    for (int i = 0; i < totalNotes; i++) {
+        if (noteNames[i] != NULL) {
+            free(noteNames[i]);
+        }
+    }
+    free(noteNames);
+}
+
 static int _getNoteIndex(NoteType noteType) {
     switch (noteType) {
-        case DO_NOTE: return 0;   // C
-        case RE_NOTE: return 2;   // D
-        case MI_NOTE: return 4;   // E
-        case FA_NOTE: return 5;   // F
-        case SOL_NOTE: return 7;  // G
-        case LA_NOTE: return 9;   // A
-        case SI_NOTE: return 11;  // B
+        case DO_NOTE: return 0;
+        case RE_NOTE: return 2;
+        case MI_NOTE: return 4;
+        case FA_NOTE: return 5;
+        case SOL_NOTE: return 7;
+        case LA_NOTE: return 9;
+        case SI_NOTE: return 11;
         default: return 0;
     }
 }
 
-/**
- * Gets the note name with sharp notation
- */
 static const char* _getNoteNameWithSharp(NoteType noteType) {
     switch (noteType) {
         case DO_NOTE: return "C";
@@ -175,9 +203,6 @@ static const char* _getNoteNameWithSharp(NoteType noteType) {
     }
 }
 
-/**
- * Gets the duration units for a note (relative units for visualization)
- */
 static int _getNoteDurationUnits(NoteDuration duration) {
     switch (duration) {
         case WHOLE_NOTE: return 16;
@@ -189,14 +214,15 @@ static int _getNoteDurationUnits(NoteDuration duration) {
     }
 }
 
-/**
- * Generates MIDI visualization (piano roll style)
- */
 static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigned int indentationLevel) {
     if (noteSequence == NULL || noteSequence->count == 0) return;
     
-    // Define all 12 chromatic notes
-    const char* noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+    int minOctave, maxOctave;
+    _findOctaveRange(noteSequence, &minOctave, &maxOctave);
+    
+    int totalNotes;
+    char** noteNames = _generateNoteNames(minOctave, maxOctave, &totalNotes);
+    if (noteNames == NULL) return;
     
     // Calculate total time units
     int totalTime = 0;
@@ -205,10 +231,9 @@ static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigne
         totalTime += _getNoteDurationUnits(noteSequence->notes[i]->duration);
     }
     
-    // Create a grid: 12 notes x totalTime positions
-    // Track which notes are active at each time position
-    int** grid = (int**)malloc(12 * sizeof(int*));
-    for (int i = 0; i < 12; i++) {
+    // Create a grid: totalNotes x totalTime positions
+    int** grid = (int**)malloc(totalNotes * sizeof(int*));
+    for (int i = 0; i < totalNotes; i++) {
         grid[i] = (int*)calloc(totalTime, sizeof(int));
     }
     
@@ -217,12 +242,12 @@ static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigne
     for (int i = 0; i < noteSequence->count; i++) {
         if (noteSequence->notes[i] == NULL) break;
         Note *note = noteSequence->notes[i];
-        int noteIndex = _getNoteIndex(note->type);
+        int noteIndex = _getNoteIndexWithOctave(note->type, note->octave, minOctave);
         int duration = _getNoteDurationUnits(note->duration);
         
         // Mark the note as active for its duration
         for (int t = 0; t < duration; t++) {
-            if (currentTime + t < totalTime) {
+            if (currentTime + t < totalTime && noteIndex < totalNotes) {
                 grid[noteIndex][currentTime + t] = 1;
             }
         }
@@ -231,14 +256,14 @@ static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigne
     
     // Print the visualization
     _output(indentationLevel, "%s", "\nMIDI Visualization:\n");
-    for (int note = 0; note < 12; note++) {
+    for (int note = 0; note < totalNotes; note++) {
         // Allocate enough space for note name, tab, and all time positions
         int lineSize = totalTime + 20;
         char* line = (char*)malloc(lineSize * sizeof(char));
         if (line == NULL) continue;
         
         // Start with note name and tab
-        int pos = sprintf(line, "%-3s\t", noteNames[note]);
+        int pos = sprintf(line, "%-4s\t", noteNames[note]);
         
         // Add the visualization characters
         for (int t = 0; t < totalTime && pos < lineSize - 1; t++) {
@@ -250,11 +275,12 @@ static void _generateMidiVisualization(NoteSequence *noteSequence, const unsigne
         free(line);
     }
     
-    // Free the grid
-    for (int i = 0; i < 12; i++) {
+    // Free allocated memory
+    for (int i = 0; i < totalNotes; i++) {
         free(grid[i]);
     }
     free(grid);
+    _freeNoteNames(noteNames, totalNotes);
 }
 
 /**
